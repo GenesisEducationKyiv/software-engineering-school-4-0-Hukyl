@@ -16,7 +16,7 @@ var conn *gorm.DB
 type DB interface {
 	Connection() *gorm.DB
 	Init()
-	Migrate()
+	Migrate() error
 }
 
 type db struct{}
@@ -63,9 +63,9 @@ func (d *db) Init() {
 	d.Connection()
 }
 
-func (d *db) Migrate() {
+func (d *db) Migrate() error {
 	db := d.Connection()
-	db.AutoMigrate(&User{})
+	return db.AutoMigrate(&User{})
 }
 
 func NewDB() DB {

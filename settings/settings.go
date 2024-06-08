@@ -1,21 +1,26 @@
 package settings
 
 import (
+	"log"
 	"os"
 	"time"
 
 	"github.com/joho/godotenv"
 )
 
-func InitSettings() {
-	godotenv.Load(".env")
+func InitSettings() error {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Println("No .env file found.")
+		return err
+	}
 
 	Debug = os.Getenv("DEBUG") == "true"
 	if Debug {
 		EMAIL_INTERVAL = 1 * time.Minute
 	}
 
-	// Webserver configuration
+	// Web server configuration
 	Port = os.Getenv("PORT")
 
 	// Database
@@ -29,13 +34,14 @@ func InitSettings() {
 	SMTPPassword = os.Getenv("SMTP_PASSWORD")
 
 	FromEmail = os.Getenv("FROM_EMAIL")
+	return nil
 }
 
 var EMAIL_INTERVAL time.Duration = 24 * time.Hour
 
 var Debug bool = false
 
-// Webserver configuration
+// Web server configuration
 var Port string = "8080"
 
 // Database

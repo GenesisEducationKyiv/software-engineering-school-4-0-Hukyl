@@ -33,8 +33,13 @@ func NotifyUsers() {
 }
 
 func main() {
-	settings.InitSettings()
-	models.NewDB().Migrate()
+	if err := settings.InitSettings(); err != nil {
+		log.Fatalf("Failed to initialize settings: %s", err)
+	}
+	err := models.NewDB().Migrate()
+	if err != nil {
+		log.Fatalf("Failed to migrate database: %s", err)
+	}
 
 	go func() {
 		for {
@@ -52,5 +57,7 @@ func main() {
 		ReadTimeout:  15 * time.Second,
 	}
 	log.Printf("Starting server on %s\n", s.Addr)
-	s.ListenAndServe()
+	if err = s.ListenAndServe(); err != nil {
+		log.Fatalf("HTTP server error occurred: %s", err)
+	}
 }
