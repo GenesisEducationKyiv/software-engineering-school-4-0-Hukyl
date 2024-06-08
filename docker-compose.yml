@@ -1,0 +1,38 @@
+version: '3'
+
+services:
+  db:
+    container_name: db
+    image: postgres
+    ports:
+      - "5432:5432"
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: genesis_kma_se_school
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+
+  api-service:
+    container_name: api-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    volumes:
+      - .:/go/src/github.com/Hukyl/genesis-kma-school-entry
+    depends_on:
+      - db
+    env_file:
+      - ./.env
+    restart: always
+    environment:
+      - DATABASE_SERVICE=postgres
+      - DATABASE_DSN=host=db user=postgres password=postgres dbname=genesis_kma_se_school port=5432 sslmode=disable TimeZone=UTC
+
+
+volumes:
+  postgres-db:
+      
