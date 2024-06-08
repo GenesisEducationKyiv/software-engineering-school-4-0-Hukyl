@@ -31,12 +31,7 @@ func SubscribeUser(c *gin.Context) {
 		return
 	}
 	db := models.NewDB()
-	var exists bool
-	err := db.Connection().Model(&models.User{}).
-		Select("count(*) > 0").
-		Where("email = ?", email).
-		Find(&exists).
-		Error
+	exists, err := models.UserExists(email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
