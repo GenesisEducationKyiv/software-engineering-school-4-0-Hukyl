@@ -5,5 +5,13 @@
         "joho",
         "gorm",
         "gonic",
+        "gomail",
+    ],
+    "cSpell.ignorePaths": [
+        ".vscode",
+        ".golangci.yml",
+    ],
+    "cSpell.words": [
+        "Dialector",
     ]
 }
