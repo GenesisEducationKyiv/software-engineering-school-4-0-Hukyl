@@ -15,8 +15,7 @@ func (u User) String() string {
 	return fmt.Sprintf("User<%d, %#v>", u.ID, u.Email)
 }
 
-func UserExists(email string) (bool, error) {
-	db := NewDB()
+func UserExists(db *DB, email string) (bool, error) {
 	var exists bool
 	err := db.Connection().Model(&User{}).
 		Select("count(*) > 0").

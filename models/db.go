@@ -2,24 +2,19 @@ package models
 
 import (
 	"errors"
-	"log"
+	"fmt"
+	"log/slog"
 
-	"github.com/Hukyl/genesis-kma-school-entry/settings"
+	"github.com/Hukyl/genesis-kma-school-entry/models/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-// Global singleton database connection
-var conn *gorm.DB
-
-type DB interface {
-	Connection() *gorm.DB
-	Init()
-	Migrate() error
+type DB struct {
+	Config config.Config
+	conn   *gorm.DB
 }
-
-type db struct{}
 
 func openConnection(service, dsn string) (gorm.Dialector, error) {
 	var open func(string) gorm.Dialector
@@ -34,42 +29,56 @@ func openConnection(service, dsn string) (gorm.Dialector, error) {
 	return open(dsn), nil
 }
 
-func (d *db) Connection() *gorm.DB {
-	if conn == nil {
-		dialect, err := openConnection(settings.DatabaseService, settings.DatabaseDSN)
+func (d *DB) Connection() *gorm.DB {
+	config := d.Config
+	if d.conn == nil {
+		dialect, err := openConnection(
+			config.DatabaseService,
+			config.DatabaseDSN,
+		)
 		if err != nil {
-			log.Fatalf("Unknown database service: %s", settings.DatabaseService)
+			slog.Error(fmt.Sprintf(
+				"Unknown database service: %s",
+				config.DatabaseService,
+			))
 			return nil
 		} else if dialect == nil {
-			log.Fatalf("Failed to open connection todatabase: %s", settings.DatabaseDSN)
+			slog.Error(fmt.Sprintf(
+				"Failed to open connection to database: %s",
+				config.DatabaseService,
+			))
 			return nil
 		}
 		db, err := gorm.Open(dialect, &gorm.Config{})
 		if err != nil {
-			log.Fatalf("Failed to connect to database: %s", err)
+			slog.Error(fmt.Sprintf("Failed to connect to database: %s", err))
 			return nil
 		}
-		conn = db
-		log.Printf(
+		d.conn = db
+		slog.Info(fmt.Sprintf(
 			"Opening connection to db (%s, %s)",
-			settings.DatabaseService, settings.DatabaseDSN,
-		)
+			config.DatabaseService, config.DatabaseDSN,
+		))
 	}
-	return conn
+	return d.conn
 }
 
-func (d *db) Init() {
+func (d *DB) Init() {
 	// Initialize first connection with the database
 	d.Connection()
 }
 
-func (d *db) Migrate() error {
+func (d *DB) Migrate() error {
 	db := d.Connection()
-	return db.AutoMigrate(&User{})
+	err := db.AutoMigrate(&User{})
+	if err != nil {
+		return fmt.Errorf("Failed to migrate User: %w", err)
+	}
+	return nil
 }
 
-func NewDB() DB {
-	db := &db{}
+func NewDB(c config.Config) *DB {
+	db := DB{Config: c}
 	db.Init()
-	return db
+	return &db
 }
