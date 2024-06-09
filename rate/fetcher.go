@@ -8,18 +8,7 @@ import (
 	"time"
 )
 
-// Fetcher is an interface that defines the methods for fetching exchange rates.
-//
-// SupportedCurrencies returns a list of currency codes that the Fetcher supports.
-//
-// FetchRate fetches the exchange rate (either from local storage, by accessing API
-// or in any other way) between two currencies.
-type Fetcher interface {
-	SupportedCurrencies() []string
-	FetchRate(ccFrom, ccTo string) (Rate, error)
-}
-
-// nbuRateFetcher is a RateFetcher implementation that fetches rates from
+// NBURateFetcher is a RateFetcher implementation that fetches rates from
 // the National Bank of Ukraine
 // API docs: https://bank.gov.ua/ua/open-data/api-dev
 // NOTE: CurrencyTo can only be "UAH", as the NBU API only supports fetching rates for UAH
@@ -32,20 +21,20 @@ type Fetcher interface {
 //		log.Fatal(err)
 //	}
 //	fmt.Println(rate)
-type nbuRateFetcher struct{}
+type NBURateFetcher struct{}
 
-func (n nbuRateFetcher) SupportedCurrencies() []string {
+func (n NBURateFetcher) SupportedCurrencies() []string {
 	return []string{"UAH", "USD"}
 }
 
-func (n nbuRateFetcher) formatURL(cc string, date time.Time) string {
+func (n NBURateFetcher) formatURL(cc string, date time.Time) string {
 	currentDate := fmt.Sprintf("%d%02d%02d", date.Year(), date.Month(), date.Day())
 	baseURL := "https://bank.gov.ua/NBUStatService/v1/statdirectory/" +
 		"exchange?valcode=%s&date=%s&json"
 	return fmt.Sprintf(baseURL, cc, currentDate)
 }
 
-func (n nbuRateFetcher) FetchRate(ccFrom, ccTo string) (Rate, error) {
+func (n NBURateFetcher) FetchRate(ccFrom, ccTo string) (Rate, error) {
 	if ccTo != "UAH" {
 		return Rate{}, fmt.Errorf("invalid currency from: %s", ccFrom)
 	}
@@ -75,6 +64,6 @@ func (n nbuRateFetcher) FetchRate(ccFrom, ccTo string) (Rate, error) {
 	return rate, nil
 }
 
-func NewNBURateFetcher() Fetcher {
-	return nbuRateFetcher{}
+func NewNBURateFetcher() NBURateFetcher {
+	return NBURateFetcher{}
 }
