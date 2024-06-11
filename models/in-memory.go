@@ -12,15 +12,18 @@ func SetUpTestDB(tb testing.TB) *DB {
 		DatabaseService: "sqlite",
 		DatabaseDSN:     "file::memory:?cache=shared",
 	}
-	db := NewDB(config)
+	db, err := NewDB(config)
+	if err != nil {
+		tb.Fatalf("failed to create database: %v", err)
+	}
 	// NOTE: only works with SQLite in-memory databases
 	if err := db.Migrate(); err != nil {
-		tb.Errorf("Failed to migrate database: %v", err)
+		tb.Errorf("failed to migrate database: %v", err)
 	}
 	tb.Cleanup(func() {
 		migrator := db.Connection().Migrator()
 		if err := migrator.DropTable(&User{}); err != nil {
-			tb.Errorf("Failed to drop table: %v", err)
+			tb.Errorf("failed to drop table: %v", err)
 		}
 	})
 	return db

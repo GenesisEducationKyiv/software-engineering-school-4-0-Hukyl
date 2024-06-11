@@ -29,10 +29,10 @@ func NotifyUsers(ctx context.Context, apiClient server.Client, mc *mail.Client) 
 	}
 	var users []models.User
 	db.Connection().Find(&users)
-	slog.Info(fmt.Sprintf(
-		"Notifying by email %d users\n",
-		len(users),
-	))
+	slog.Info(
+		"notifying users by email",
+		slog.Any("userCount", len(users)),
+	)
 	for _, user := range users {
 		message := fmt.Sprintf("1 USD = %f UAH", rate.Rate)
 		if err := mc.SendEmail(ctx, user.Email, message); err != nil {
@@ -42,9 +42,8 @@ func NotifyUsers(ctx context.Context, apiClient server.Client, mc *mail.Client) 
 }
 
 func main() {
-	err := settings.InitSettings()
-	if err != nil {
-		slog.Error(fmt.Sprintf("Failed to initialize settings: %s", err))
+	if err := settings.InitSettings(); err != nil {
+		slog.Error("failed to initialize settings", slog.Any("error", err))
 		panic(err)
 	}
 
@@ -56,17 +55,21 @@ func main() {
 	)
 
 	mc := &mail.Client{Config: mailCfg.NewFromEnv()}
+	db, err := models.NewDB(modelsCfg.NewFromEnv())
+	if err != nil {
+		slog.Error("failed to initialize database", slog.Any("error", err))
+		panic(err)
+	}
 	apiClient := server.Client{
 		Config:      serverCfg.NewFromEnv(),
 		RateFetcher: rate.NewNBURateFetcher(),
-		DB:          models.NewDB(modelsCfg.NewFromEnv()),
+		DB:          db,
 	}
 	ctx = context.WithValue(ctx, settings.APIClientKey, apiClient)
 	apiClient.Engine = server.NewEngine(ctx)
 
-	err = apiClient.DB.Migrate()
-	if err != nil {
-		slog.Error(fmt.Sprintf("Failed to migrate database: %s", err))
+	if err := apiClient.DB.Migrate(); err != nil {
+		slog.Error("failed to migrate database", slog.Any("error", err))
 		panic(err)
 	}
 
@@ -78,7 +81,7 @@ func main() {
 	}()
 
 	s := server.NewServer(apiClient.Config, apiClient.Engine)
-	if err = s.ListenAndServe(); err != nil {
-		slog.Error(fmt.Sprintf("HTTP server error occurred: %s", err))
+	if err := s.ListenAndServe(); err != nil {
+		slog.Error("HTTP server error occurred", slog.Any("error", err))
 	}
 }

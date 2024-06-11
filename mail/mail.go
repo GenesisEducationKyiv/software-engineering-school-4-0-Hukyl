@@ -3,7 +3,6 @@ package mail
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"strconv"
 
@@ -24,10 +23,12 @@ func (mc *Client) SendEmail(ctx context.Context, email, message string) error {
 }
 
 func (mc *Client) SendEmailStub(email, message string) error {
-	slog.Info(fmt.Sprintf(
-		"Sending email from %s to %s: %s\n",
-		mc.Config.FromEmail, email, message,
-	))
+	slog.Info(
+		"sending email",
+		slog.Any("fromEmail", mc.Config.FromEmail),
+		slog.Any("toEmail", email),
+		slog.Any("message", message),
+	)
 	return nil
 }
 

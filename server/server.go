@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -18,6 +17,6 @@ func NewServer(config config.Config, handler http.Handler) *http.Server {
 		WriteTimeout: defaultTimeout,
 		ReadTimeout:  defaultTimeout,
 	}
-	slog.Info(fmt.Sprintf("Starting server on %s\n", server.Addr))
+	slog.Info("starting server", slog.Any("address", server.Addr))
 	return server
 }
