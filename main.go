@@ -25,7 +25,7 @@ func NotifyUsers(ctx context.Context, apiClient server.Client, mc *mail.Client) 
 
 	rate, err := apiClient.RateFetcher.FetchRate("USD", "UAH")
 	if err != nil {
-		slog.Warn(err.Error())
+		slog.Warn("failed to fetch rate", slog.Any("error", err))
 		return
 	}
 	var users []models.User
