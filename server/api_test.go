@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/Hukyl/genesis-kma-school-entry/database"
 	"github.com/Hukyl/genesis-kma-school-entry/models"
 	"github.com/Hukyl/genesis-kma-school-entry/rate"
 	"github.com/Hukyl/genesis-kma-school-entry/server"
@@ -75,7 +76,7 @@ func TestSubscribeUser(t *testing.T) {
 	apiClient := server.Client{
 		Config:      serverCfg.NewFromEnv(),
 		RateFetcher: rate.NewNBURateFetcher(),
-		DB:          models.SetUpTestDB(t),
+		DB:          database.SetUpTest(t, &models.User{}),
 	}
 	ctx = context.WithValue(ctx, settings.APIClientKey, apiClient)
 	engine := server.NewEngine(ctx)
@@ -98,7 +99,7 @@ func TestSubscribeUserAlreadySubscribed(t *testing.T) {
 	apiClient := server.Client{
 		Config:      serverCfg.NewFromEnv(),
 		RateFetcher: rate.NewNBURateFetcher(),
-		DB:          models.SetUpTestDB(t),
+		DB:          database.SetUpTest(t, &models.User{}),
 	}
 	ctx = context.WithValue(ctx, settings.APIClientKey, apiClient)
 	engine := server.NewEngine(ctx)

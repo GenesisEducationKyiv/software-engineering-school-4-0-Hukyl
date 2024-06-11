@@ -1,11 +1,11 @@
-package models
+package database
 
 import (
 	"errors"
 	"fmt"
 	"log/slog"
 
-	"github.com/Hukyl/genesis-kma-school-entry/models/config"
+	"github.com/Hukyl/genesis-kma-school-entry/database/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -51,12 +51,12 @@ func (d *DB) Connection() *gorm.DB {
 		)
 		return nil
 	}
-	db, err := gorm.Open(dialect, &gorm.Config{})
+	conn, err := gorm.Open(dialect, &gorm.Config{})
 	if err != nil {
 		slog.Error("failed to connect to database", slog.Any("error", err))
 		return nil
 	}
-	d.conn = db
+	d.conn = conn
 	slog.Info(
 		"opening connection to db",
 		slog.Any("databaseService", config.DatabaseService),
@@ -74,17 +74,26 @@ func (d *DB) Init() error {
 	return nil
 }
 
-func (d *DB) Migrate() error {
-	db := d.Connection()
-	err := db.AutoMigrate(&User{})
-	if err != nil {
-		slog.Error("failed to migrate User", slog.Any("error", err))
-		return fmt.Errorf("failed to migrate User: %w", err)
+func (d *DB) Migrate(models ...any) error {
+	conn := d.Connection()
+	if conn == nil {
+		return fmt.Errorf("failed to connect to database")
+	}
+	for _, m := range models {
+		err := conn.AutoMigrate(m)
+		if err != nil {
+			slog.Error(
+				"failed to migrate",
+				slog.Any("error", err),
+				slog.Any("model", m),
+			)
+			return fmt.Errorf("failed to migrate User: %w", err)
+		}
 	}
 	return nil
 }
 
-func NewDB(c config.Config) (*DB, error) {
+func New(c config.Config) (*DB, error) {
 	db := DB{Config: c}
 	err := db.Init()
 	if err != nil {

@@ -7,10 +7,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/Hukyl/genesis-kma-school-entry/database"
+	dbCfg "github.com/Hukyl/genesis-kma-school-entry/database/config"
 	"github.com/Hukyl/genesis-kma-school-entry/mail"
 	mailCfg "github.com/Hukyl/genesis-kma-school-entry/mail/config"
 	"github.com/Hukyl/genesis-kma-school-entry/models"
-	modelsCfg "github.com/Hukyl/genesis-kma-school-entry/models/config"
 	"github.com/Hukyl/genesis-kma-school-entry/rate"
 	"github.com/Hukyl/genesis-kma-school-entry/server"
 	serverCfg "github.com/Hukyl/genesis-kma-school-entry/server/config"
@@ -36,7 +37,11 @@ func NotifyUsers(ctx context.Context, apiClient server.Client, mc *mail.Client) 
 	for _, user := range users {
 		message := fmt.Sprintf("1 USD = %f UAH", rate.Rate)
 		if err := mc.SendEmail(ctx, user.Email, message); err != nil {
-			slog.Error(err.Error())
+			slog.Error(
+				"failed sending email",
+				slog.Any("error", err),
+				slog.Any("userEmail", user.Email),
+			)
 		}
 	}
 }
@@ -55,7 +60,7 @@ func main() {
 	)
 
 	mc := &mail.Client{Config: mailCfg.NewFromEnv()}
-	db, err := models.NewDB(modelsCfg.NewFromEnv())
+	db, err := database.New(dbCfg.NewFromEnv())
 	if err != nil {
 		slog.Error("failed to initialize database", slog.Any("error", err))
 		panic(err)
