@@ -28,8 +28,12 @@ func NotifyUsers(ctx context.Context, apiClient server.Client, mc *mail.Client) 
 		slog.Warn("failed to fetch rate", slog.Any("error", err))
 		return
 	}
-	var users []models.User
-	db.Connection().Find(&users)
+	repo := models.NewUserRepository(db)
+	users, err := repo.FindAll()
+	if err != nil {
+		slog.Error("failed to fetch users", slog.Any("error", err))
+		return
+	}
 	slog.Info(
 		"notifying users by email",
 		slog.Any("userCount", len(users)),

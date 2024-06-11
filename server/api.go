@@ -49,8 +49,9 @@ func SubscribeUser(ctx context.Context, c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, "")
 		return
 	}
-	db := apiClient.DB
-	exists, err := models.UserExists(db, email)
+	repo := models.NewUserRepository(apiClient.DB)
+	user := &models.User{Email: email}
+	exists, err := repo.Exists(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
@@ -59,8 +60,7 @@ func SubscribeUser(ctx context.Context, c *gin.Context) {
 		c.JSON(http.StatusConflict, "")
 		return
 	}
-	user := models.User{Email: email}
-	err = db.Connection().Create(&user).Error
+	err = repo.Create(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
