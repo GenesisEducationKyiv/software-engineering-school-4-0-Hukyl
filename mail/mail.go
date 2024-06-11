@@ -41,7 +41,10 @@ func (mc *Client) SendSMTPEmail(email, message string) error {
 	mail.SetHeader("Subject", "USD-UAH exchange rate")
 	mail.SetBody("text/html", message)
 
-	port, _ := strconv.Atoi(config.SMTPPort)
+	port, err := strconv.Atoi(config.SMTPPort)
+	if err != nil {
+		return fmt.Errorf("failed to convert SMTP port to int: %w", err)
+	}
 	dialer := gomail.NewDialer(
 		config.SMTPHost,
 		port,
