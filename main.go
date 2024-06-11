@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"time"
 
 	"github.com/Hukyl/genesis-kma-school-entry/database"
 	dbCfg "github.com/Hukyl/genesis-kma-school-entry/database/config"
@@ -16,9 +15,10 @@ import (
 	"github.com/Hukyl/genesis-kma-school-entry/server"
 	serverCfg "github.com/Hukyl/genesis-kma-school-entry/server/config"
 	"github.com/Hukyl/genesis-kma-school-entry/settings"
+	"github.com/robfig/cron/v3"
 )
 
-const emailInterval = 24 * time.Hour
+const defaultCronSpec = "0 0 12 * * *"
 
 func NotifyUsers(ctx context.Context, apiClient server.Client, mc *mail.Client) {
 	db := apiClient.DB
@@ -44,6 +44,18 @@ func NotifyUsers(ctx context.Context, apiClient server.Client, mc *mail.Client) 
 			)
 		}
 	}
+}
+
+func StartCron(spec string, f func()) *cron.Cron {
+	c := cron.New()
+	_, err := c.AddFunc(spec, f)
+	if err != nil {
+		slog.Error("failed to add cron job", slog.Any("error", err))
+		return nil
+	}
+	slog.Info("cron job added", slog.Any("spec", spec))
+	c.Start()
+	return c
 }
 
 func main() {
@@ -73,17 +85,18 @@ func main() {
 	ctx = context.WithValue(ctx, settings.APIClientKey, apiClient)
 	apiClient.Engine = server.NewEngine(ctx)
 
-	if err := apiClient.DB.Migrate(); err != nil {
+	if err := apiClient.DB.Migrate(&models.User{}); err != nil {
 		slog.Error("failed to migrate database", slog.Any("error", err))
 		panic(err)
 	}
 
-	go func() {
-		for {
-			go NotifyUsers(ctx, apiClient, mc)
-			time.Sleep(emailInterval)
-		}
-	}()
+	cronSpec := os.Getenv("CRON_SPEC")
+	if cronSpec == "" {
+		cronSpec = defaultCronSpec
+	}
+	StartCron(cronSpec, func() {
+		NotifyUsers(ctx, apiClient, mc)
+	})
 
 	s := server.NewServer(apiClient.Config, apiClient.Engine)
 	if err := s.ListenAndServe(); err != nil {

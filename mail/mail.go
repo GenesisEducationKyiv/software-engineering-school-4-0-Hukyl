@@ -2,11 +2,12 @@ package mail
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"log/slog"
 	"strconv"
 
 	"github.com/Hukyl/genesis-kma-school-entry/mail/config"
+	"github.com/Hukyl/genesis-kma-school-entry/settings"
 	"github.com/go-gomail/gomail"
 )
 
@@ -15,7 +16,7 @@ type Client struct {
 }
 
 func (mc *Client) SendEmail(ctx context.Context, email, message string) error {
-	debug, ok := ctx.Value("debug").(bool)
+	debug, ok := ctx.Value(settings.DebugKey).(bool)
 	if ok && debug {
 		return mc.SendEmailStub(email, message)
 	}
@@ -48,7 +49,7 @@ func (mc *Client) SendSMTPEmail(email, message string) error {
 		config.SMTPPassword,
 	)
 	if err := dialer.DialAndSend(mail); err != nil {
-		return errors.New("Failed to send email: " + err.Error())
+		return fmt.Errorf("failed to send email: %w", err)
 	}
 	return nil
 }
