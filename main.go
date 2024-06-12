@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 
@@ -14,41 +13,12 @@ import (
 	"github.com/Hukyl/genesis-kma-school-entry/rate"
 	"github.com/Hukyl/genesis-kma-school-entry/server"
 	serverCfg "github.com/Hukyl/genesis-kma-school-entry/server/config"
+	"github.com/Hukyl/genesis-kma-school-entry/server/notifications"
 	"github.com/Hukyl/genesis-kma-school-entry/settings"
 	"github.com/robfig/cron/v3"
 )
 
 const defaultCronSpec = "0 0 12 * * *"
-
-func NotifyUsers(ctx context.Context, apiClient server.Client, mc *mail.Client) {
-	db := apiClient.DB
-
-	rate, err := apiClient.RateFetcher.FetchRate("USD", "UAH")
-	if err != nil {
-		slog.Warn("failed to fetch rate", slog.Any("error", err))
-		return
-	}
-	repo := models.NewUserRepository(db)
-	users, err := repo.FindAll()
-	if err != nil {
-		slog.Error("failed to fetch users", slog.Any("error", err))
-		return
-	}
-	slog.Info(
-		"notifying users by email",
-		slog.Any("userCount", len(users)),
-	)
-	for _, user := range users {
-		message := fmt.Sprintf("1 USD = %f UAH", rate.Rate)
-		if err := mc.SendEmail(ctx, user.Email, message); err != nil {
-			slog.Error(
-				"failed sending email",
-				slog.Any("error", err),
-				slog.Any("userEmail", user.Email),
-			)
-		}
-	}
-}
 
 func StartCron(spec string, f func()) *cron.Cron {
 	c := cron.New()
@@ -98,8 +68,13 @@ func main() {
 	if cronSpec == "" {
 		cronSpec = defaultCronSpec
 	}
+	notifier := notifications.NewUsersNotifier(
+		mc,
+		apiClient.RateFetcher,
+		models.NewUserRepository(apiClient.DB),
+	)
 	StartCron(cronSpec, func() {
-		NotifyUsers(ctx, apiClient, mc)
+		notifier.Notify(ctx)
 	})
 
 	s := server.NewServer(apiClient.Config, apiClient.Engine)
