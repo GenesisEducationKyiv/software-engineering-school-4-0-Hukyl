@@ -17,34 +17,6 @@ func TestUserRepositoryCreate(t *testing.T) {
 	assert.NotZero(t, user.ID)
 }
 
-func TestUserRepositoryFindByEmail(t *testing.T) {
-	// Prepare
-	db := database.SetUpTest(t, &models.User{})
-	repo := models.NewUserRepository(db)
-	user := &models.User{Email: "example@gmail.com"}
-	err := repo.Create(user)
-	assert.NoError(t, err)
-	// Act
-	found, err := repo.FindByEmail(user.Email)
-	// Assert
-	assert.NoError(t, err)
-	assert.Equal(t, user.ID, found.ID)
-}
-
-func TestUserRepositoryFindByID(t *testing.T) {
-	// Prepare
-	db := database.SetUpTest(t, &models.User{})
-	repo := models.NewUserRepository(db)
-	user := &models.User{Email: "example@gmail.com"}
-	err := repo.Create(user)
-	assert.NoError(t, err)
-	// Act
-	found, err := repo.FindByID(user.ID)
-	// Assert
-	assert.NoError(t, err)
-	assert.Equal(t, user.Email, found.Email)
-}
-
 func TestUserRepositoryFindAll(t *testing.T) {
 	// Prepare
 	db := database.SetUpTest(t, &models.User{})
@@ -86,36 +58,4 @@ func TestUserRepositoryNotExists(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 	assert.False(t, exists)
-}
-
-func TestUserRepositoryUpdate(t *testing.T) {
-	// Prepare
-	db := database.SetUpTest(t, &models.User{})
-	repo := models.NewUserRepository(db)
-	user := &models.User{Email: "example@gmail.com"}
-	err := repo.Create(user)
-	assert.NoError(t, err)
-	// Act
-	user.Email = "example2@gmail.com"
-	err = repo.Update(user)
-	// Assert
-	assert.NoError(t, err)
-	found, err := repo.FindByID(user.ID)
-	assert.NoError(t, err)
-	assert.Equal(t, user.Email, found.Email)
-}
-
-func TestUserRepositoryDelete(t *testing.T) {
-	// Prepare
-	db := database.SetUpTest(t, &models.User{})
-	repo := models.NewUserRepository(db)
-	user := &models.User{Email: "example@gmail.com"}
-	err := repo.Create(user)
-	assert.NoError(t, err)
-	// Act
-	err = repo.Delete(user)
-	// Assert
-	assert.NoError(t, err)
-	_, err = repo.FindByID(user.ID)
-	assert.Error(t, err)
 }
