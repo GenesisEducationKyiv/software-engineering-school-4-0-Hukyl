@@ -1,27 +1,50 @@
 package server_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"testing"
 
+	"github.com/Hukyl/genesis-kma-school-entry/database"
+	"github.com/Hukyl/genesis-kma-school-entry/models"
+	"github.com/Hukyl/genesis-kma-school-entry/rate"
+	"github.com/Hukyl/genesis-kma-school-entry/server"
+	serverCfg "github.com/Hukyl/genesis-kma-school-entry/server/config"
+	"github.com/Hukyl/genesis-kma-school-entry/settings"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/Hukyl/genesis-kma-school-entry/server"
-	"github.com/Hukyl/genesis-kma-school-entry/utils"
 )
 
-func TestGetRate(t *testing.T) {
-	// FIXME: tests should not depend on external services
-	r := server.ApiEngine()
+func TestEmptyContext(t *testing.T) {
+	engine := server.NewEngine(context.Background())
 	req, err := http.NewRequest("GET", "/rate", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
+	engine.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+
+func TestGetRate(t *testing.T) {
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, settings.DebugKey, true)
+	apiClient := server.Client{
+		Config:      serverCfg.NewFromEnv(),
+		RateFetcher: rate.NewNBURateFetcher(),
+	}
+	ctx = context.WithValue(ctx, settings.APIClientKey, apiClient)
+	engine := server.NewEngine(ctx)
+
+	// FIXME: tests should not depend on external services
+	req, err := http.NewRequest("GET", "/rate", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rr := httptest.NewRecorder()
+	engine.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
 	rate, err := strconv.ParseFloat(rr.Body.String(), 32)
 	assert.Nil(t, err)
@@ -29,21 +52,35 @@ func TestGetRate(t *testing.T) {
 }
 
 func TestSubscribeUserNoEmail(t *testing.T) {
-	r := server.ApiEngine()
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, settings.DebugKey, true)
+	apiClient := server.Client{
+		Config:      serverCfg.NewFromEnv(),
+		RateFetcher: rate.NewNBURateFetcher(),
+	}
+	ctx = context.WithValue(ctx, settings.APIClientKey, apiClient)
+	engine := server.NewEngine(ctx)
+
 	req, err := http.NewRequest("POST", "/subscribe", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
+	engine.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
 func TestSubscribeUser(t *testing.T) {
-	utils.SetUpTestDB()
-	defer utils.TearDownTestDB()
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, settings.DebugKey, true)
+	apiClient := server.Client{
+		Config:      serverCfg.NewFromEnv(),
+		RateFetcher: rate.NewNBURateFetcher(),
+		DB:          database.SetUpTest(t, &models.User{}),
+	}
+	ctx = context.WithValue(ctx, settings.APIClientKey, apiClient)
+	engine := server.NewEngine(ctx)
 
-	r := server.ApiEngine()
 	req, err := http.NewRequest("POST", "/subscribe", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -52,15 +89,20 @@ func TestSubscribeUser(t *testing.T) {
 		"email": {"example@gmail.com"},
 	}
 	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
+	engine.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
 func TestSubscribeUserAlreadySubscribed(t *testing.T) {
-	utils.SetUpTestDB()
-	defer utils.TearDownTestDB()
-
-	r := server.ApiEngine()
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, settings.DebugKey, true)
+	apiClient := server.Client{
+		Config:      serverCfg.NewFromEnv(),
+		RateFetcher: rate.NewNBURateFetcher(),
+		DB:          database.SetUpTest(t, &models.User{}),
+	}
+	ctx = context.WithValue(ctx, settings.APIClientKey, apiClient)
+	engine := server.NewEngine(ctx)
 
 	req, err := http.NewRequest("POST", "/subscribe", nil)
 	if err != nil {
@@ -69,18 +111,17 @@ func TestSubscribeUserAlreadySubscribed(t *testing.T) {
 	req.PostForm = map[string][]string{
 		"email": {"example@gmail.com"},
 	}
-	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-	assert.Equal(t, http.StatusOK, rr.Code)
+	recorder := httptest.NewRecorder()
+	engine.ServeHTTP(recorder, req)
+	assert.Equal(t, http.StatusOK, recorder.Code)
 
-	rr = httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-	assert.Equal(t, http.StatusConflict, rr.Code)
+	recorder = httptest.NewRecorder()
+	engine.ServeHTTP(recorder, req)
+	assert.Equal(t, http.StatusConflict, recorder.Code)
 }
 
 func TestMain(m *testing.M) {
-	utils.SetUpTestDB()
-	defer utils.TearDownTestDB()
 	gin.SetMode(gin.ReleaseMode)
+	_ = settings.InitSettings()
 	m.Run()
 }

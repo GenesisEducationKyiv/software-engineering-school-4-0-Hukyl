@@ -1,0 +1,48 @@
+linters:
+  enable:
+    - cyclop
+    - decorder
+    - dupl
+    - errcheck
+    - errorlint
+    - exhaustive
+    - funlen
+    - gci
+    - gocognit
+    - goconst
+    - godot
+    - gofmt
+    - goimports
+    - gosec
+    - govet
+    - importas
+    - inamedparam
+    - lll
+    - musttag
+    - nestif
+    - nonamedreturns
+    - prealloc
+    - revive
+    - sloglint
+    - staticcheck
+    - tagalign
+    - thelper
+    - unused
+    - whitespace
+
+
+
+linters-settings:
+  gocognit:
+    min-complexity: 15
+  lll:
+    line-length: 100
+    tab-width: 4
+
+issues:
+  fix: true
+  whole-files: true
+
+
+severity:
+  default-severity: error
