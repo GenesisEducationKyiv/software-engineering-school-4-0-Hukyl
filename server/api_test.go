@@ -76,7 +76,7 @@ func TestSubscribeUser(t *testing.T) {
 	apiClient := server.Client{
 		Config:      serverCfg.NewFromEnv(),
 		RateFetcher: rate.NewNBURateFetcher(),
-		DB:          database.SetUpTest(t, &models.User{}),
+		UserRepo:    *models.NewUserRepository(database.SetUpTest(t, &models.User{})),
 	}
 	ctx = context.WithValue(ctx, settings.APIClientKey, apiClient)
 	engine := server.NewEngine(ctx)
@@ -99,7 +99,7 @@ func TestSubscribeUserAlreadySubscribed(t *testing.T) {
 	apiClient := server.Client{
 		Config:      serverCfg.NewFromEnv(),
 		RateFetcher: rate.NewNBURateFetcher(),
-		DB:          database.SetUpTest(t, &models.User{}),
+		UserRepo:    *models.NewUserRepository(database.SetUpTest(t, &models.User{})),
 	}
 	ctx = context.WithValue(ctx, settings.APIClientKey, apiClient)
 	engine := server.NewEngine(ctx)

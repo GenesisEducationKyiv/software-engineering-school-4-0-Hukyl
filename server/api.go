@@ -49,7 +49,7 @@ func SubscribeUser(ctx context.Context, c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, "")
 		return
 	}
-	repo := models.NewUserRepository(apiClient.DB)
+	repo := apiClient.UserRepo
 	user := &models.User{Email: email}
 	exists, err := repo.Exists(user)
 	if err != nil {
