@@ -61,8 +61,6 @@ func main() {
 		RateFetcher: rate.NewNBURateFetcher(),
 		UserRepo:    *models.NewUserRepository(db),
 	}
-	ctx = context.WithValue(ctx, settings.APIClientKey, apiClient)
-	apiClient.Engine = server.NewEngine(ctx)
 
 	// Start cron job for notifications
 	cronSpec := os.Getenv("CRON_SPEC")
@@ -83,7 +81,7 @@ func main() {
 	})
 
 	// Start HTTP server
-	s := server.NewServer(apiClient.Config, apiClient.Engine)
+	s := server.NewServer(apiClient.Config, server.NewEngine(apiClient))
 	if err := s.ListenAndServe(); err != nil {
 		slog.Error("HTTP server error occurred", slog.Any("error", err))
 	}
