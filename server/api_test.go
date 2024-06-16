@@ -23,10 +23,7 @@ func TestGetRate(t *testing.T) {
 	})
 
 	// FIXME: tests should not depend on external services
-	req, err := http.NewRequest("GET", "/rate", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := httptest.NewRequest(http.MethodGet, "/rate", nil)
 	rr := httptest.NewRecorder()
 	engine.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
@@ -41,10 +38,7 @@ func TestSubscribeUserNoEmail(t *testing.T) {
 		RateFetcher: rate.NewNBURateFetcher(),
 	})
 
-	req, err := http.NewRequest("POST", "/subscribe", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := httptest.NewRequest(http.MethodPost, "/subscribe", nil)
 	rr := httptest.NewRecorder()
 	engine.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
@@ -57,10 +51,7 @@ func TestSubscribeUser(t *testing.T) {
 		UserRepo:    *models.NewUserRepository(database.SetUpTest(t, &models.User{})),
 	})
 
-	req, err := http.NewRequest("POST", "/subscribe", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := httptest.NewRequest(http.MethodPost, "/subscribe", nil)
 	req.PostForm = map[string][]string{
 		"email": {"example@gmail.com"},
 	}
@@ -76,10 +67,7 @@ func TestSubscribeUserAlreadySubscribed(t *testing.T) {
 		UserRepo:    *models.NewUserRepository(database.SetUpTest(t, &models.User{})),
 	})
 
-	req, err := http.NewRequest("POST", "/subscribe", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := httptest.NewRequest(http.MethodPost, "/subscribe", nil)
 	req.PostForm = map[string][]string{
 		"email": {"example@gmail.com"},
 	}
