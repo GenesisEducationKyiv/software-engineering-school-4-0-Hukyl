@@ -57,10 +57,11 @@ func main() {
 		panic(err)
 	}
 
+	userRepo := models.NewUserRepository(db)
 	apiClient := server.Client{
 		Config:      serverCfg.NewFromEnv(),
 		RateFetcher: rate.NewNBURateFetcher(),
-		UserRepo:    *models.NewUserRepository(db),
+		UserRepo:    userRepo,
 	}
 
 	// Start cron job for notifications
@@ -75,7 +76,7 @@ func main() {
 	notifier := notifications.NewUsersNotifier(
 		&mail.Client{Config: mailCfg.NewFromEnv()},
 		apiClient.RateFetcher,
-		&apiClient.UserRepo,
+		userRepo,
 		&message.PlainRateMessage{},
 	)
 	StartCron(cronSpec, func() {
