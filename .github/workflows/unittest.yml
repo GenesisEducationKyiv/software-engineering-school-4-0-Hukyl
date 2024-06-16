@@ -1,11 +1,10 @@
-name: Run linter
+name: Unit testing
 
 on: [push]
 
-
 jobs:
 
-  lint:
+  unittest:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -15,5 +14,5 @@ jobs:
       with:
         go-version: '1.22'
 
-    - name: Golangci-lint
-      uses: golangci/golangci-lint-action@v6.0.1
+    - name: Test
+      run: go test -v ./...
