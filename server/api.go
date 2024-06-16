@@ -12,9 +12,9 @@ type UserRepository interface {
 	Create(user *models.User) error
 }
 
-// GetRateWrapper is a handler that fetches the exchange rate between USD and UAH
+// NewGetRateHandler is a handler that fetches the exchange rate between USD and UAH
 // from a RateFetcher interface and returns it as a JSON response.
-func GetRateWrapper(rateFetcher RateFetcher) func(*gin.Context) {
+func NewGetRateHandler(rateFetcher RateFetcher) func(*gin.Context) {
 	return func(c *gin.Context) {
 		rate, err := rateFetcher.FetchRate("USD", "UAH")
 		if err != nil {
@@ -29,7 +29,7 @@ func GetRateWrapper(rateFetcher RateFetcher) func(*gin.Context) {
 // The email is passed as a POST parameter and is required.
 // If the user is already subscribed, returns a 409 Conflict status code.
 // If the subscription is successful, returns a 200 OK status code.
-func SubscribeUserWrapper(repo UserRepository) func(*gin.Context) {
+func NewSubscribeUserHandler(repo UserRepository) func(*gin.Context) {
 	return func(c *gin.Context) {
 		email := c.PostForm("email")
 		if email == "" {
@@ -58,7 +58,7 @@ func SubscribeUserWrapper(repo UserRepository) func(*gin.Context) {
 func NewEngine(client Client) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
-	r.GET("/rate", GetRateWrapper(client.RateFetcher))
-	r.POST("/subscribe", SubscribeUserWrapper(&client.UserRepo))
+	r.GET("/rate", NewGetRateHandler(client.RateFetcher))
+	r.POST("/subscribe", NewSubscribeUserHandler(&client.UserRepo))
 	return r
 }
