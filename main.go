@@ -14,6 +14,7 @@ import (
 	"github.com/Hukyl/genesis-kma-school-entry/server"
 	serverCfg "github.com/Hukyl/genesis-kma-school-entry/server/config"
 	"github.com/Hukyl/genesis-kma-school-entry/server/notifications"
+	"github.com/Hukyl/genesis-kma-school-entry/server/notifications/message"
 	"github.com/Hukyl/genesis-kma-school-entry/settings"
 	"github.com/robfig/cron/v3"
 )
@@ -75,6 +76,7 @@ func main() {
 		&mail.Client{Config: mailCfg.NewFromEnv()},
 		apiClient.RateFetcher,
 		&apiClient.UserRepo,
+		&message.PlainRateMessage{},
 	)
 	StartCron(cronSpec, func() {
 		notifier.Notify(ctx)

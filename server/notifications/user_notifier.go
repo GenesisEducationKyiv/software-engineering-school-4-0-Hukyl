@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/Hukyl/genesis-kma-school-entry/models"
+	"github.com/Hukyl/genesis-kma-school-entry/rate"
 	"github.com/Hukyl/genesis-kma-school-entry/server"
 )
 
@@ -16,21 +17,30 @@ type Repository interface {
 	FindAll() ([]models.User, error)
 }
 
+type RateMessageFormatter interface {
+	SetRate(rate rate.Rate)
+	Subject() string
+	String() string
+}
+
 type UsersNotifier struct {
-	mailClient     EmailClient
-	rateFetcher    server.RateFetcher
-	userRepository Repository
+	mailClient       EmailClient
+	rateFetcher      server.RateFetcher
+	userRepository   Repository
+	messageFormatter RateMessageFormatter
 }
 
 func NewUsersNotifier(
 	mailClient EmailClient,
 	rateFetcher server.RateFetcher,
 	userRepository Repository,
+	msgFormatter RateMessageFormatter,
 ) *UsersNotifier {
 	return &UsersNotifier{
-		mailClient:     mailClient,
-		rateFetcher:    rateFetcher,
-		userRepository: userRepository,
+		mailClient:       mailClient,
+		rateFetcher:      rateFetcher,
+		userRepository:   userRepository,
+		messageFormatter: msgFormatter,
 	}
 }
 
@@ -51,9 +61,15 @@ func (n *UsersNotifier) Notify(ctx context.Context) {
 		"notifying users by email",
 		slog.Any("userCount", len(users)),
 	)
+
+	n.messageFormatter.SetRate(rate)
 	for _, user := range users {
-		message := NewRateMessage(rate)
-		err := n.mailClient.SendEmail(ctx, user.Email, message.Subject(), message.String())
+		err := n.mailClient.SendEmail(
+			ctx,
+			user.Email,
+			n.messageFormatter.Subject(),
+			n.messageFormatter.String(),
+		)
 		if err != nil {
 			slog.Error(
 				"failed sending email",

@@ -28,6 +28,24 @@ func (m *mockUserRepository) FindAll() ([]models.User, error) {
 	return args.Get(0).([]models.User), args.Error(1)
 }
 
+type mockMessageFormatter struct {
+	mock.Mock
+}
+
+func (m *mockMessageFormatter) SetRate(rate rate.Rate) {
+	m.Called(rate)
+}
+
+func (m *mockMessageFormatter) Subject() string {
+	args := m.Called()
+	return args.String(0)
+}
+
+func (m *mockMessageFormatter) String() string {
+	args := m.Called()
+	return args.String(0)
+}
+
 type mockEmailClient struct {
 	mock.Mock
 }
@@ -47,10 +65,23 @@ func TestUserNotify(t *testing.T) {
 		{Email: "example2@gmail.com"},
 	}, nil)
 	emailClient := new(mockEmailClient)
-	emailClient.On("SendEmail", ctx, "example@gmail.com", mock.Anything).Return(nil).Once()
-	emailClient.On("SendEmail", ctx, "example2@gmail.com", mock.Anything).Return(nil).Once()
+	emailClient.On(
+		"SendEmail", ctx, "example@gmail.com", mock.Anything, mock.Anything,
+	).Return(nil).Once()
+	emailClient.On(
+		"SendEmail", ctx, "example2@gmail.com", mock.Anything, mock.Anything,
+	).Return(nil).Once()
+	messageFormatter := new(mockMessageFormatter)
+	messageFormatter.On("SetRate", rate.Rate{Rate: 27.5}).Return()
+	messageFormatter.On("Subject").Return("USD-UAH exchange rate")
+	messageFormatter.On("String").Return("1 USD = 27.5 UAH")
 
-	notifier := notifications.NewUsersNotifier(emailClient, rateFetcher, userRepository)
+	notifier := notifications.NewUsersNotifier(
+		emailClient,
+		rateFetcher,
+		userRepository,
+		messageFormatter,
+	)
 	notifier.Notify(ctx)
 	rateFetcher.AssertExpectations(t)
 	userRepository.AssertExpectations(t)
