@@ -87,7 +87,7 @@ func (d *DB) Migrate(models ...any) error {
 				slog.Any("error", err),
 				slog.Any("model", m),
 			)
-			return fmt.Errorf("failed to migrate User: %w", err)
+			return fmt.Errorf("failed to migrate %s: %w", m, err)
 		}
 	}
 	return nil

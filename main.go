@@ -82,6 +82,7 @@ func main() {
 
 	// Start HTTP server
 	s := server.NewServer(apiClient.Config, server.NewEngine(apiClient))
+	slog.Info("starting server", slog.Any("address", s.Addr))
 	if err := s.ListenAndServe(); err != nil {
 		slog.Error("HTTP server error occurred", slog.Any("error", err))
 	}

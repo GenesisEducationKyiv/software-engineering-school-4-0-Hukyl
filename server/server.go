@@ -1,7 +1,6 @@
 package server
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -17,6 +16,5 @@ func NewServer(config config.Config, handler http.Handler) *http.Server {
 		WriteTimeout: defaultTimeout,
 		ReadTimeout:  defaultTimeout,
 	}
-	slog.Info("starting server", slog.Any("address", server.Addr))
 	return server
 }
