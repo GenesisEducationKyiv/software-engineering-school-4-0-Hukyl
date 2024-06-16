@@ -6,11 +6,8 @@ import (
 
 	"github.com/Hukyl/genesis-kma-school-entry/mail"
 	"github.com/Hukyl/genesis-kma-school-entry/mail/config"
-	smtpmock "github.com/mocktools/go-smtp-mock/v2"
 	"github.com/stretchr/testify/assert"
 )
-
-const localhost = "127.0.0.1"
 
 func TestClientSendEmailStub(t *testing.T) {
 	mc := mail.Client{
@@ -37,22 +34,12 @@ func TestClientSMTPEmailInvalidPort(t *testing.T) {
 }
 
 func TestClientSMTPEmail(t *testing.T) {
-	smtpServer := smtpmock.New(smtpmock.ConfigurationAttr{})
-	if err := smtpServer.Start(); err != nil {
-		t.Error("failed to start smtp server")
-	}
-	defer func() {
-		if err := smtpServer.Stop(); err != nil {
-			t.Error("failed to stop smtp server")
-		}
-	}()
-	hostAddress, portNumber := localhost, smtpServer.PortNumber()
-
+	smtpServer := mail.MockSMTPServer(t)
 	mc := mail.Client{
 		Config: config.Config{
 			FromEmail:    "example@gmail.com",
-			SMTPHost:     hostAddress,
-			SMTPPort:     fmt.Sprint(portNumber),
+			SMTPHost:     mail.Localhost,
+			SMTPPort:     fmt.Sprint(smtpServer.PortNumber()),
 			SMTPUser:     "user",
 			SMTPPassword: "password",
 		},
@@ -114,22 +101,12 @@ func TestClientSMTPEmailVariousParameters(t *testing.T) { // nolint: funlen
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			smtpServer := smtpmock.New(smtpmock.ConfigurationAttr{})
-			if err := smtpServer.Start(); err != nil {
-				t.Error("failed to start smtp server")
-			}
-			defer func() {
-				if err := smtpServer.Stop(); err != nil {
-					t.Error("failed to stop smtp server")
-				}
-			}()
-			hostAddress, portNumber := localhost, smtpServer.PortNumber()
-
+			smtpServer := mail.MockSMTPServer(t)
 			mc := mail.Client{
 				Config: config.Config{
 					FromEmail:    tc.fromEmail,
-					SMTPHost:     hostAddress,
-					SMTPPort:     fmt.Sprint(portNumber),
+					SMTPHost:     mail.Localhost,
+					SMTPPort:     fmt.Sprint(smtpServer.PortNumber()),
 					SMTPUser:     "user",
 					SMTPPassword: "password",
 				},
@@ -146,22 +123,12 @@ func TestClientSMTPEmailVariousParameters(t *testing.T) { // nolint: funlen
 }
 
 func TestClientSMTPEmailTimeout(t *testing.T) {
-	smtpServer := smtpmock.New(smtpmock.ConfigurationAttr{})
-	if err := smtpServer.Start(); err != nil {
-		t.Error("failed to start smtp server")
-	}
-	defer func() {
-		if err := smtpServer.Stop(); err != nil {
-			t.Error("failed to stop smtp server")
-		}
-	}()
-	hostAddress, portNumber := localhost, smtpServer.PortNumber()
-
+	smtpServer := mail.MockSMTPServer(t)
 	mc := mail.Client{
 		Config: config.Config{
 			FromEmail:    "example@gmail.com",
-			SMTPHost:     hostAddress,
-			SMTPPort:     fmt.Sprint(portNumber + 1),
+			SMTPHost:     mail.Localhost,
+			SMTPPort:     fmt.Sprint(smtpServer.PortNumber() + 1),
 			SMTPUser:     "user",
 			SMTPPassword: "password",
 		},
