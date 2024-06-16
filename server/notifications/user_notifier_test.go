@@ -7,47 +7,52 @@ import (
 	"github.com/Hukyl/genesis-kma-school-entry/models"
 	"github.com/Hukyl/genesis-kma-school-entry/rate"
 	"github.com/Hukyl/genesis-kma-school-entry/server/notifications"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 type mockRateFetcher struct {
-	callCount int
+	mock.Mock
 }
 
 func (m *mockRateFetcher) FetchRate(from, to string) (rate.Rate, error) {
-	m.callCount++
-	return rate.Rate{CurrencyFrom: from, CurrencyTo: to, Rate: 27.5}, nil
+	args := m.Called(from, to)
+	return args.Get(0).(rate.Rate), args.Error(1)
 }
 
 type mockUserRepository struct {
-	callCount int
+	mock.Mock
 }
 
 func (m *mockUserRepository) FindAll() ([]models.User, error) {
-	m.callCount++
-	return []models.User{
-		{Email: "example@gmail.com"},
-		{Email: "example2@gmail.com"},
-	}, nil
+	args := m.Called()
+	return args.Get(0).([]models.User), args.Error(1)
 }
 
 type mockEmailClient struct {
-	callCount int
+	mock.Mock
 }
 
-func (m *mockEmailClient) SendEmail(_ context.Context, _, _ string) error {
-	m.callCount++
-	return nil
+func (m *mockEmailClient) SendEmail(ctx context.Context, email, subject, message string) error {
+	args := m.Called(ctx, email, subject, message)
+	return args.Error(0)
 }
 
-func TestNotify(t *testing.T) {
+func TestUserNotify(t *testing.T) {
 	ctx := context.Background()
-	rateFetcher := &mockRateFetcher{}
-	userRepository := &mockUserRepository{}
-	emailClient := &mockEmailClient{}
+	rateFetcher := new(mockRateFetcher)
+	rateFetcher.On("FetchRate", "USD", "UAH").Return(rate.Rate{Rate: 27.5}, nil)
+	userRepository := new(mockUserRepository)
+	userRepository.On("FindAll").Return([]models.User{
+		{Email: "example@gmail.com"},
+		{Email: "example2@gmail.com"},
+	}, nil)
+	emailClient := new(mockEmailClient)
+	emailClient.On("SendEmail", ctx, "example@gmail.com", mock.Anything).Return(nil).Once()
+	emailClient.On("SendEmail", ctx, "example2@gmail.com", mock.Anything).Return(nil).Once()
+
 	notifier := notifications.NewUsersNotifier(emailClient, rateFetcher, userRepository)
 	notifier.Notify(ctx)
-	assert.Equal(t, 1, rateFetcher.callCount)
-	assert.Equal(t, 1, userRepository.callCount)
-	assert.Equal(t, 2, emailClient.callCount)
+	rateFetcher.AssertExpectations(t)
+	userRepository.AssertExpectations(t)
+	emailClient.AssertExpectations(t)
 }

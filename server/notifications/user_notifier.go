@@ -9,7 +9,7 @@ import (
 )
 
 type EmailClient interface {
-	SendEmail(ctx context.Context, email, message string) error
+	SendEmail(ctx context.Context, email, subject, message string) error
 }
 
 type Repository interface {
@@ -53,7 +53,8 @@ func (n *UsersNotifier) Notify(ctx context.Context) {
 	)
 	for _, user := range users {
 		message := NewRateMessage(rate)
-		if err := n.mailClient.SendEmail(ctx, user.Email, message.String()); err != nil {
+		err := n.mailClient.SendEmail(ctx, user.Email, message.Subject(), message.String())
+		if err != nil {
 			slog.Error(
 				"failed sending email",
 				slog.Any("error", err),

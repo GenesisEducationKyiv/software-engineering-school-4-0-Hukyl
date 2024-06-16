@@ -15,6 +15,10 @@ func (m RateMessage) Rate() rate.Rate {
 	return m.rate
 }
 
+func (m RateMessage) Subject() string {
+	return fmt.Sprintf("%s-%s exchange rate", m.rate.CurrencyFrom, m.rate.CurrencyTo)
+}
+
 func (m RateMessage) String() string {
 	return fmt.Sprintf(
 		"1 %s = %f %s",
