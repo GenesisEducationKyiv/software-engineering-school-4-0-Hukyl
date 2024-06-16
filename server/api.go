@@ -7,6 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	RatePath      = "/rate"
+	SubscribePath = "/subscribe"
+)
+
 type UserRepository interface {
 	Exists(user *models.User) (bool, error)
 	Create(user *models.User) error
@@ -25,7 +30,7 @@ func NewGetRateHandler(rateFetcher RateFetcher) func(*gin.Context) {
 	}
 }
 
-// SubscribeUser is a handler that subscribes a user by email.
+// NewSubscribeUserHandler is a handler that subscribes a user by email.
 // The email is passed as a POST parameter and is required.
 // If the user is already subscribed, returns a 409 Conflict status code.
 // If the subscription is successful, returns a 200 OK status code.
@@ -58,7 +63,7 @@ func NewSubscribeUserHandler(repo UserRepository) func(*gin.Context) {
 func NewEngine(client Client) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
-	r.GET("/rate", NewGetRateHandler(client.RateFetcher))
-	r.POST("/subscribe", NewSubscribeUserHandler(&client.UserRepo))
+	r.GET(RatePath, NewGetRateHandler(client.RateFetcher))
+	r.POST(SubscribePath, NewSubscribeUserHandler(client.UserRepo))
 	return r
 }
