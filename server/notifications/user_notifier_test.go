@@ -56,14 +56,18 @@ func (m *mockEmailClient) SendEmail(ctx context.Context, email, subject, message
 }
 
 func TestUserNotify(t *testing.T) {
+	// Arrange
 	ctx := context.Background()
+
 	rateFetcher := new(mockRateFetcher)
 	rateFetcher.On("FetchRate", "USD", "UAH").Return(rate.Rate{Rate: 27.5}, nil)
+
 	userRepository := new(mockUserRepository)
 	userRepository.On("FindAll").Return([]models.User{
 		{Email: "example@gmail.com"},
 		{Email: "example2@gmail.com"},
 	}, nil)
+
 	emailClient := new(mockEmailClient)
 	emailClient.On(
 		"SendEmail", ctx, "example@gmail.com", mock.Anything, mock.Anything,
@@ -71,6 +75,7 @@ func TestUserNotify(t *testing.T) {
 	emailClient.On(
 		"SendEmail", ctx, "example2@gmail.com", mock.Anything, mock.Anything,
 	).Return(nil).Once()
+
 	messageFormatter := new(mockMessageFormatter)
 	messageFormatter.On("SetRate", rate.Rate{Rate: 27.5}).Return()
 	messageFormatter.On("Subject").Return("USD-UAH exchange rate")
@@ -82,7 +87,9 @@ func TestUserNotify(t *testing.T) {
 		userRepository,
 		messageFormatter,
 	)
+	// Act
 	notifier.Notify(ctx)
+	// Assert
 	rateFetcher.AssertExpectations(t)
 	userRepository.AssertExpectations(t)
 	emailClient.AssertExpectations(t)
