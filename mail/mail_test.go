@@ -1,13 +1,55 @@
 package mail_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/Hukyl/genesis-kma-school-entry/mail"
 	"github.com/Hukyl/genesis-kma-school-entry/mail/config"
+	"github.com/Hukyl/genesis-kma-school-entry/settings"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestClientSendEmailByDebugKey(t *testing.T) {
+	testCases := []struct {
+		name            string
+		debugKeyPresent bool
+		messagesCount   int
+	}{
+		{
+			name:            "with-key",
+			debugKeyPresent: true,
+			messagesCount:   0,
+		},
+		{
+			name:            "without-key",
+			debugKeyPresent: false,
+			messagesCount:   1,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			if tc.debugKeyPresent {
+				ctx = context.WithValue(ctx, settings.DebugKey, true)
+			}
+			smtpServer := mail.MockSMTPServer(t)
+			mc := mail.Client{
+				Config: config.Config{
+					FromEmail:    "example@gmail.com",
+					SMTPHost:     mail.Localhost,
+					SMTPPort:     fmt.Sprint(smtpServer.PortNumber()),
+					SMTPUser:     "user",
+					SMTPPassword: "password",
+				},
+			}
+			err := mc.SendEmail(ctx, "example2@gmail.com", "subject", "message")
+			assert.NoError(t, err)
+			assert.Len(t, smtpServer.Messages(), tc.messagesCount)
+		})
+	}
+}
 
 func TestClientSendEmailStub(t *testing.T) {
 	mc := mail.Client{
@@ -114,10 +156,10 @@ func TestClientSMTPEmailVariousParameters(t *testing.T) { // nolint: funlen
 			err := mc.SendSMTPEmail(tc.toEmail, tc.subject, tc.message)
 			if tc.expectError {
 				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Len(t, smtpServer.Messages(), 1)
+				return
 			}
+			assert.NoError(t, err)
+			assert.Len(t, smtpServer.Messages(), 1)
 		})
 	}
 }
