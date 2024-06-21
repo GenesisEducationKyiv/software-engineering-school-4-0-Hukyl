@@ -13,5 +13,5 @@ type Rate struct {
 }
 
 func (r Rate) String() string {
-	return fmt.Sprintf("%s -> %s: %f", r.CurrencyFrom, r.CurrencyTo, r.Rate)
+	return fmt.Sprintf("Rate<%s -> %s: %f>", r.CurrencyFrom, r.CurrencyTo, r.Rate)
 }

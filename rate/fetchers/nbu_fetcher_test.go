@@ -1,13 +1,13 @@
-package rate_test
+package fetchers_test
 
 import (
 	"testing"
 
-	"github.com/Hukyl/genesis-kma-school-entry/rate"
+	"github.com/Hukyl/genesis-kma-school-entry/rate/fetchers"
 )
 
 func TestNBUUnsupportedCurrency(t *testing.T) {
-	nbu := rate.NewNBURateFetcher()
+	nbu := fetchers.NewNBURateFetcher()
 	_, err := nbu.FetchRate("-", "UAH")
 	if err == nil {
 		t.Error("expected an error")
@@ -15,7 +15,7 @@ func TestNBUUnsupportedCurrency(t *testing.T) {
 }
 
 func TestNBUFetchRate(t *testing.T) {
-	nbu := rate.NewNBURateFetcher()
+	nbu := fetchers.NewNBURateFetcher()
 	rate, err := nbu.FetchRate("USD", "UAH")
 	if err != nil {
 		t.Fatal(err)
@@ -26,7 +26,7 @@ func TestNBUFetchRate(t *testing.T) {
 }
 
 func TestNBUOnlyUAH(t *testing.T) {
-	nbu := rate.NewNBURateFetcher()
+	nbu := fetchers.NewNBURateFetcher()
 	_, err := nbu.FetchRate("USD", "EUR")
 	if err == nil {
 		t.Error("expected an error")

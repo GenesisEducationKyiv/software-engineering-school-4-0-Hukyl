@@ -1,16 +1,16 @@
 package server
 
 import (
-	"github.com/Hukyl/genesis-kma-school-entry/rate"
+	"github.com/Hukyl/genesis-kma-school-entry/models"
 	"github.com/Hukyl/genesis-kma-school-entry/server/config"
 )
 
-type RateFetcher interface {
-	FetchRate(ccFrom, ccTo string) (rate.Rate, error)
+type RateService interface {
+	FetchRate(from, to string) (*models.Rate, error)
 }
 
 type Client struct {
 	Config      config.Config
-	RateFetcher RateFetcher
+	RateService RateService
 	UserRepo    UserRepository
 }

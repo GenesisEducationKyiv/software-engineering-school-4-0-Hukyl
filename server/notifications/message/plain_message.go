@@ -3,15 +3,15 @@ package message
 import (
 	"fmt"
 
-	"github.com/Hukyl/genesis-kma-school-entry/rate"
+	"github.com/Hukyl/genesis-kma-school-entry/models"
 )
 
 // PlainRateMessage is a message that contains the exchange rate between two currencies.
 type PlainRateMessage struct {
-	rate rate.Rate
+	rate *models.Rate
 }
 
-func (m *PlainRateMessage) SetRate(rate rate.Rate) {
+func (m *PlainRateMessage) SetRate(rate *models.Rate) {
 	m.rate = rate
 }
 

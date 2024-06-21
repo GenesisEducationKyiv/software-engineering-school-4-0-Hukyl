@@ -10,11 +10,12 @@ import (
 	"github.com/Hukyl/genesis-kma-school-entry/mail"
 	mailCfg "github.com/Hukyl/genesis-kma-school-entry/mail/config"
 	"github.com/Hukyl/genesis-kma-school-entry/models"
-	"github.com/Hukyl/genesis-kma-school-entry/rate"
+	"github.com/Hukyl/genesis-kma-school-entry/rate/fetchers"
 	"github.com/Hukyl/genesis-kma-school-entry/server"
 	serverCfg "github.com/Hukyl/genesis-kma-school-entry/server/config"
 	"github.com/Hukyl/genesis-kma-school-entry/server/notifications"
 	"github.com/Hukyl/genesis-kma-school-entry/server/notifications/message"
+	"github.com/Hukyl/genesis-kma-school-entry/server/service"
 	"github.com/Hukyl/genesis-kma-school-entry/settings"
 	"github.com/robfig/cron/v3"
 )
@@ -52,15 +53,20 @@ func main() {
 		slog.Error("failed to initialize database", slog.Any("error", err))
 		panic(err)
 	}
-	if err := db.Migrate(&models.User{}); err != nil {
+	if err := db.Migrate(&models.User{}, &models.Rate{}); err != nil {
 		slog.Error("failed to migrate database", slog.Any("error", err))
 		panic(err)
 	}
 
+	// Initialize rate fetcher chain of responsibilities
+	baseFetcher := fetchers.NewBaseFetcher()
+	nbuFetcher := fetchers.NewNBURateFetcher()
+	nbuFetcher.SetNext(baseFetcher)
+
 	userRepo := models.NewUserRepository(db)
 	apiClient := server.Client{
 		Config:      serverCfg.NewFromEnv(),
-		RateFetcher: rate.NewNBURateFetcher(),
+		RateService: service.NewRateService(models.NewRateRepository(db), nbuFetcher),
 		UserRepo:    userRepo,
 	}
 
@@ -75,7 +81,7 @@ func main() {
 	}
 	notifier := notifications.NewUsersNotifier(
 		&mail.Client{Config: mailCfg.NewFromEnv()},
-		apiClient.RateFetcher,
+		apiClient.RateService,
 		userRepo,
 		&message.PlainRateMessage{},
 	)

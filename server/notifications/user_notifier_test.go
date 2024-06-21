@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/Hukyl/genesis-kma-school-entry/models"
-	"github.com/Hukyl/genesis-kma-school-entry/rate"
 	"github.com/Hukyl/genesis-kma-school-entry/server/notifications"
 	"github.com/stretchr/testify/mock"
 )
@@ -14,9 +13,9 @@ type mockRateFetcher struct {
 	mock.Mock
 }
 
-func (m *mockRateFetcher) FetchRate(from, to string) (rate.Rate, error) {
+func (m *mockRateFetcher) FetchRate(from, to string) (*models.Rate, error) {
 	args := m.Called(from, to)
-	return args.Get(0).(rate.Rate), args.Error(1)
+	return args.Get(0).(*models.Rate), args.Error(1)
 }
 
 type mockUserRepository struct {
@@ -32,7 +31,7 @@ type mockMessageFormatter struct {
 	mock.Mock
 }
 
-func (m *mockMessageFormatter) SetRate(rate rate.Rate) {
+func (m *mockMessageFormatter) SetRate(rate *models.Rate) {
 	m.Called(rate)
 }
 
@@ -59,8 +58,8 @@ func TestUserNotify(t *testing.T) {
 	// Arrange
 	ctx := context.Background()
 
-	rateFetcher := new(mockRateFetcher)
-	rateFetcher.On("FetchRate", "USD", "UAH").Return(rate.Rate{Rate: 27.5}, nil)
+	rateService := new(mockRateFetcher)
+	rateService.On("FetchRate", "USD", "UAH").Return(&models.Rate{Rate: 27.5}, nil)
 
 	userRepository := new(mockUserRepository)
 	userRepository.On("FindAll").Return([]models.User{
@@ -77,20 +76,20 @@ func TestUserNotify(t *testing.T) {
 	).Return(nil).Once()
 
 	messageFormatter := new(mockMessageFormatter)
-	messageFormatter.On("SetRate", rate.Rate{Rate: 27.5}).Return()
+	messageFormatter.On("SetRate", &models.Rate{Rate: 27.5}).Return()
 	messageFormatter.On("Subject").Return("USD-UAH exchange rate")
 	messageFormatter.On("String").Return("1 USD = 27.5 UAH")
 
 	notifier := notifications.NewUsersNotifier(
 		emailClient,
-		rateFetcher,
+		rateService,
 		userRepository,
 		messageFormatter,
 	)
 	// Act
 	notifier.Notify(ctx)
 	// Assert
-	rateFetcher.AssertExpectations(t)
+	rateService.AssertExpectations(t)
 	userRepository.AssertExpectations(t)
 	emailClient.AssertExpectations(t)
 }

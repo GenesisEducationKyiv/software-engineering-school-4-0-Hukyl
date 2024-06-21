@@ -13,21 +13,43 @@ import (
 	"github.com/Hukyl/genesis-kma-school-entry/mail"
 	mailCfg "github.com/Hukyl/genesis-kma-school-entry/mail/config"
 	"github.com/Hukyl/genesis-kma-school-entry/models"
-	"github.com/Hukyl/genesis-kma-school-entry/rate"
+	"github.com/Hukyl/genesis-kma-school-entry/rate/fetchers"
 	"github.com/Hukyl/genesis-kma-school-entry/server"
 	serverCfg "github.com/Hukyl/genesis-kma-school-entry/server/config"
 	"github.com/Hukyl/genesis-kma-school-entry/server/notifications"
 	"github.com/Hukyl/genesis-kma-school-entry/server/notifications/message"
+	"github.com/Hukyl/genesis-kma-school-entry/server/service"
 	"github.com/Hukyl/genesis-kma-school-entry/settings"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
+func TestRateServiceFetchRate_Success(t *testing.T) {
+	// Arrange
+	rateRepo := models.NewRateRepository(database.SetUpTest(t, &models.Rate{}))
+	baseFetcher := fetchers.NewBaseFetcher()
+	nbuFetcher := fetchers.NewNBURateFetcher()
+	nbuFetcher.SetNext(baseFetcher)
+	rateFetcher := service.NewRateService(rateRepo, nbuFetcher)
+	// Act
+	result, err := rateFetcher.FetchRate("USD", "UAH")
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, "USD", result.CurrencyFrom)
+	assert.Equal(t, "UAH", result.CurrencyTo)
+	assert.NotZero(t, result.Rate)
+}
+
 func TestUserNotificationsRecipients(t *testing.T) {
 	// Arrange
 	ctx := context.Background()
-	repo := models.NewUserRepository(database.SetUpTest(t, &models.User{}))
-	rateFetcher := rate.NewNBURateFetcher()
+	db := database.SetUpTest(t, &models.User{}, &models.Rate{})
+	repo := models.NewUserRepository(db)
+
+	rateService := service.NewRateService(
+		models.NewRateRepository(db),
+		fetchers.NewNBURateFetcher(),
+	)
 	smtpmockServer := mail.MockSMTPServer(t)
 	emailClient := mail.Client{
 		Config: mailCfg.Config{
@@ -40,7 +62,7 @@ func TestUserNotificationsRecipients(t *testing.T) {
 	}
 	messageFormatter := message.PlainRateMessage{}
 	notifier := notifications.NewUsersNotifier(
-		&emailClient, rateFetcher, repo, &messageFormatter,
+		&emailClient, rateService, repo, &messageFormatter,
 	)
 	users := []models.User{
 		{Email: "test1@gmail.com"},
@@ -66,14 +88,13 @@ func TestUserNotificationsRecipients(t *testing.T) {
 }
 
 func TestSubscribeUser_Success(t *testing.T) {
-	user := &models.User{Email: "example@gmail.com"}
 	// Arrange
-	repo := models.NewUserRepository(database.SetUpTest(t, &models.User{}))
-	rateFetcher := rate.NewNBURateFetcher()
+	db := database.SetUpTest(t, &models.User{})
+	user := &models.User{Email: "example@gmail.com"}
+	repo := models.NewUserRepository(db)
 	engine := server.NewEngine(server.Client{
-		Config:      serverCfg.Config{Port: "8080"},
-		RateFetcher: rateFetcher,
-		UserRepo:    repo,
+		Config:   serverCfg.Config{Port: "8080"},
+		UserRepo: repo,
 	})
 	// Act
 	rr := httptest.NewRecorder()
@@ -95,11 +116,9 @@ func TestSubscribeUser_Conflict(t *testing.T) {
 	repo := models.NewUserRepository(database.SetUpTest(t, &models.User{}))
 	err := repo.Create(user)
 	assert.Nil(t, err)
-	rateFetcher := rate.NewNBURateFetcher()
 	engine := server.NewEngine(server.Client{
-		Config:      serverCfg.Config{Port: "8080"},
-		RateFetcher: rateFetcher,
-		UserRepo:    repo,
+		Config:   serverCfg.Config{Port: "8080"},
+		UserRepo: repo,
 	})
 	// Act
 	req := httptest.NewRequest(http.MethodPost, server.SubscribePath, nil)

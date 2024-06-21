@@ -1,0 +1,19 @@
+package models_test
+
+import (
+	"testing"
+
+	"github.com/Hukyl/genesis-kma-school-entry/database"
+	"github.com/Hukyl/genesis-kma-school-entry/models"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestRateRepositoryCreate(t *testing.T) {
+	db := database.SetUpTest(t, &models.Rate{})
+	repo := models.NewRateRepository(db)
+	rate := &models.Rate{CurrencyFrom: "USD", CurrencyTo: "UAH", Rate: 27.5}
+	err := repo.Create(rate)
+	assert.NoError(t, err)
+	assert.NotZero(t, rate.ID)
+	assert.NotNil(t, rate.Created)
+}

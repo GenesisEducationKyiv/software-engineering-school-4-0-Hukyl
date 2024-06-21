@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/Hukyl/genesis-kma-school-entry/models"
-	"github.com/Hukyl/genesis-kma-school-entry/rate"
 	"github.com/Hukyl/genesis-kma-school-entry/server"
 	serverCfg "github.com/Hukyl/genesis-kma-school-entry/server/config"
 	"github.com/Hukyl/genesis-kma-school-entry/settings"
@@ -16,17 +15,19 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type mockRateFetcher struct {
-	mock.Mock
-}
+type (
+	mockUserRepository struct {
+		mock.Mock
+	}
 
-func (m *mockRateFetcher) FetchRate(from, to string) (rate.Rate, error) {
+	mockRateService struct {
+		mock.Mock
+	}
+)
+
+func (m *mockRateService) FetchRate(from, to string) (*models.Rate, error) {
 	args := m.Called(from, to)
-	return args.Get(0).(rate.Rate), args.Error(1)
-}
-
-type mockUserRepository struct {
-	mock.Mock
+	return args.Get(0).(*models.Rate), args.Error(1)
 }
 
 func (m *mockUserRepository) FindAll() ([]models.User, error) {
@@ -45,12 +46,12 @@ func (m *mockUserRepository) Exists(user *models.User) (bool, error) {
 }
 
 func TestGetRate(t *testing.T) {
-	mockFetcher := new(mockRateFetcher)
-	mockedRate := rate.Rate{Rate: 27.5}
-	mockFetcher.On("FetchRate", "USD", "UAH").Return(mockedRate, nil)
+	mockService := new(mockRateService)
+	mockedRate := &models.Rate{Rate: 27.5}
+	mockService.On("FetchRate", "USD", "UAH").Return(mockedRate, nil)
 	engine := server.NewEngine(server.Client{
 		Config:      serverCfg.Config{Port: "8080"},
-		RateFetcher: mockFetcher,
+		RateService: mockService,
 	})
 
 	req := httptest.NewRequest(http.MethodGet, server.RatePath, nil)
@@ -65,7 +66,7 @@ func TestGetRate(t *testing.T) {
 func TestSubscribeUserNoEmail(t *testing.T) {
 	engine := server.NewEngine(server.Client{
 		Config:      serverCfg.Config{Port: "8080"},
-		RateFetcher: &mockRateFetcher{},
+		RateService: &mockRateService{},
 	})
 
 	req := httptest.NewRequest(http.MethodPost, server.SubscribePath, nil)

@@ -5,7 +5,6 @@ import (
 	"log/slog"
 
 	"github.com/Hukyl/genesis-kma-school-entry/models"
-	"github.com/Hukyl/genesis-kma-school-entry/rate"
 	"github.com/Hukyl/genesis-kma-school-entry/server"
 )
 
@@ -18,34 +17,34 @@ type Repository interface {
 }
 
 type RateMessageFormatter interface {
-	SetRate(rate rate.Rate)
+	SetRate(rate *models.Rate)
 	Subject() string
 	String() string
 }
 
 type UsersNotifier struct {
 	mailClient       EmailClient
-	rateFetcher      server.RateFetcher
+	rateService      server.RateService
 	userRepository   Repository
 	messageFormatter RateMessageFormatter
 }
 
 func NewUsersNotifier(
 	mailClient EmailClient,
-	rateFetcher server.RateFetcher,
+	rateService server.RateService,
 	userRepository Repository,
 	msgFormatter RateMessageFormatter,
 ) *UsersNotifier {
 	return &UsersNotifier{
 		mailClient:       mailClient,
-		rateFetcher:      rateFetcher,
+		rateService:      rateService,
 		userRepository:   userRepository,
 		messageFormatter: msgFormatter,
 	}
 }
 
 func (n *UsersNotifier) Notify(ctx context.Context) {
-	rate, err := n.rateFetcher.FetchRate("USD", "UAH")
+	rate, err := n.rateService.FetchRate("USD", "UAH")
 	if err != nil {
 		slog.Warn("failed to fetch rate", slog.Any("error", err))
 		return
