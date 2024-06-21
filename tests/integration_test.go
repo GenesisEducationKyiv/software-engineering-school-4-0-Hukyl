@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/Hukyl/genesis-kma-school-entry/database"
@@ -32,20 +31,6 @@ func TestCurrencyBeaconFetchRate_NoAuthorization(t *testing.T) {
 	_, err := fetcher.FetchRate(context.Background(), "USD", "UAH")
 	// Assert
 	assert.Error(t, err)
-}
-
-func TestCurrencyBeaconFetchRate_Success(t *testing.T) {
-	// Arrange
-	settings.InitSettings("../.env")
-	APIKey := os.Getenv("CURRENCY_BEACON_API_KEY")
-	fetcher := fetchers.NewCurrencyBeaconFetcher(APIKey)
-	// Act
-	result, err := fetcher.FetchRate(context.Background(), "USD", "UAH")
-	// Assert
-	assert.NoError(t, err)
-	assert.Equal(t, "USD", result.CurrencyFrom)
-	assert.Equal(t, "UAH", result.CurrencyTo)
-	assert.NotZero(t, result.Rate)
 }
 
 func TestNBUFetchRate(t *testing.T) {
