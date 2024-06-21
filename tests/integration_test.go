@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/Hukyl/genesis-kma-school-entry/database"
@@ -23,6 +24,55 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestCurrencyBeaconFetchRate_NoAuthorization(t *testing.T) {
+	// Arrange
+	fetcher := fetchers.NewCurrencyBeaconFetcher("")
+	// Act
+	_, err := fetcher.FetchRate("USD", "UAH")
+	// Assert
+	assert.Error(t, err)
+}
+
+func TestCurrencyBeaconFetchRate_Success(t *testing.T) {
+	// Arrange
+	settings.InitSettings("../.env")
+	APIKey := os.Getenv("CURRENCY_BEACON_API_KEY")
+	fetcher := fetchers.NewCurrencyBeaconFetcher(APIKey)
+	// Act
+	result, err := fetcher.FetchRate("USD", "UAH")
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, "USD", result.CurrencyFrom)
+	assert.Equal(t, "UAH", result.CurrencyTo)
+	assert.NotZero(t, result.Rate)
+}
+
+func TestNBUFetchRate(t *testing.T) {
+	// Arrange
+	fetcher := fetchers.NewNBURateFetcher()
+	// Act
+	result, err := fetcher.FetchRate("USD", "UAH")
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, "USD", result.CurrencyFrom)
+	assert.Equal(t, "UAH", result.CurrencyTo)
+	assert.NotZero(t, result.Rate)
+}
+
+func TestChainFetchRate_FailFirst(t *testing.T) {
+	// Arrange
+	baseFetcher := fetchers.NewBaseFetcher()
+	nbuFetcher := fetchers.NewNBURateFetcher()
+	curBeaconFetcher := fetchers.NewCurrencyBeaconFetcher("")
+	nbuFetcher.SetNext(baseFetcher)
+	curBeaconFetcher.SetNext(nbuFetcher)
+	// Act
+	result, err := curBeaconFetcher.FetchRate("USD", "UAH")
+	// Assert
+	assert.NoError(t, err)
+	assert.NotZero(t, result.Rate)
+}
 
 func TestRateServiceFetchRate_Success(t *testing.T) {
 	// Arrange

@@ -34,6 +34,29 @@ func StartCron(spec string, f func()) *cron.Cron {
 	return c
 }
 
+func InitDatabase() (*database.DB, error) {
+	db, err := database.New(dbCfg.NewFromEnv())
+	if err != nil {
+		return nil, err
+	}
+	if err := db.Migrate(&models.User{}, &models.Rate{}); err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
+func InitFetchers() fetchers.RateFetcher {
+	// Initialize rate fetcher chain of responsibilities
+	baseFetcher := fetchers.NewBaseFetcher()
+	nbuFetcher := fetchers.NewNBURateFetcher()
+	currencyBeaconFetcher := fetchers.NewCurrencyBeaconFetcher(
+		os.Getenv("CURRENCY_BEACON_API_KEY"),
+	)
+	nbuFetcher.SetNext(baseFetcher)
+	currencyBeaconFetcher.SetNext(nbuFetcher)
+	return currencyBeaconFetcher
+}
+
 func main() {
 	if err := settings.InitSettings(); err != nil {
 		slog.Error("failed to initialize settings", slog.Any("error", err))
@@ -47,26 +70,19 @@ func main() {
 		os.Getenv("DEBUG") == "true",
 	)
 
-	// Initialize database
-	db, err := database.New(dbCfg.NewFromEnv())
+	db, err := InitDatabase()
 	if err != nil {
 		slog.Error("failed to initialize database", slog.Any("error", err))
 		panic(err)
 	}
-	if err := db.Migrate(&models.User{}, &models.Rate{}); err != nil {
-		slog.Error("failed to migrate database", slog.Any("error", err))
-		panic(err)
-	}
 
 	// Initialize rate fetcher chain of responsibilities
-	baseFetcher := fetchers.NewBaseFetcher()
-	nbuFetcher := fetchers.NewNBURateFetcher()
-	nbuFetcher.SetNext(baseFetcher)
+	rateFetcher := InitFetchers()
 
 	userRepo := models.NewUserRepository(db)
 	apiClient := server.Client{
 		Config:      serverCfg.NewFromEnv(),
-		RateService: service.NewRateService(models.NewRateRepository(db), nbuFetcher),
+		RateService: service.NewRateService(models.NewRateRepository(db), rateFetcher),
 		UserRepo:    userRepo,
 	}
 
