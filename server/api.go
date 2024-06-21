@@ -1,7 +1,9 @@
 package server
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/Hukyl/genesis-kma-school-entry/models"
 	"github.com/gin-gonic/gin"
@@ -19,9 +21,11 @@ type UserRepository interface {
 
 // NewGetRateHandler is a handler that fetches the exchange rate between USD and UAH
 // from a RateFetcher interface and returns it as a JSON response.
-func NewGetRateHandler(rateService RateService) func(*gin.Context) {
+func NewGetRateHandler(rateService RateService, timeout time.Duration) func(*gin.Context) {
 	return func(c *gin.Context) {
-		rate, err := rateService.FetchRate("USD", "UAH")
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+		rate, err := rateService.FetchRate(ctx, "USD", "UAH")
 		if err != nil {
 			c.JSON(http.StatusBadRequest, err.Error())
 			return
@@ -63,7 +67,7 @@ func NewSubscribeUserHandler(repo UserRepository) func(*gin.Context) {
 func NewEngine(client Client) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
-	r.GET(RatePath, NewGetRateHandler(client.RateService))
+	r.GET(RatePath, NewGetRateHandler(client.RateService, RateTimeout))
 	r.POST(SubscribePath, NewSubscribeUserHandler(client.UserRepo))
 	return r
 }

@@ -1,6 +1,7 @@
 package fetchers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -26,11 +27,19 @@ type CurrencyBeaconFetcher struct {
 	supportedCurrencies []string
 }
 
-func (c *CurrencyBeaconFetcher) SupportedCurrencies() []string {
+func (c *CurrencyBeaconFetcher) SupportedCurrencies(ctx context.Context) []string {
 	if c.supportedCurrencies != nil {
 		return c.supportedCurrencies
 	}
-	request, err := http.Get(supportedCurrenciesURL)
+	req, err := http.NewRequest(http.MethodGet, supportedCurrenciesURL, nil)
+	if err != nil {
+		slog.Error(
+			"creating request",
+			slog.String("fetcher", fmt.Sprint(c)), slog.Any("error", err),
+		)
+		return nil
+	}
+	response, err := http.DefaultClient.Do(req.WithContext(ctx))
 	slog.Info(
 		"fetching supported currencies",
 		slog.String("fetcher", fmt.Sprint(c)), slog.Any("error", err),
@@ -38,9 +47,9 @@ func (c *CurrencyBeaconFetcher) SupportedCurrencies() []string {
 	if err != nil {
 		return nil
 	}
-	defer request.Body.Close()
+	defer response.Body.Close()
 	sel, _ := css.Parse(cssSelector)
-	node, err := html.Parse(request.Body)
+	node, err := html.Parse(response.Body)
 	if err != nil {
 		slog.Error(
 			"parsing html",
@@ -56,13 +65,15 @@ func (c *CurrencyBeaconFetcher) SupportedCurrencies() []string {
 	return currencies
 }
 
-func (c *CurrencyBeaconFetcher) fetchRate(ccFrom, ccTo string) (rate.Rate, error) {
+func (c *CurrencyBeaconFetcher) fetchRate(
+	ctx context.Context, ccFrom, ccTo string,
+) (rate.Rate, error) {
 	formattedURL := fmt.Sprintf(baseURL, c.APIKey, ccFrom, ccTo)
 	req, err := http.NewRequest(http.MethodGet, formattedURL, nil)
 	if err != nil {
 		return rate.Rate{}, err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return rate.Rate{}, err
 	}
@@ -88,8 +99,10 @@ func (c *CurrencyBeaconFetcher) fetchRate(ccFrom, ccTo string) (rate.Rate, error
 	}, nil
 }
 
-func (c *CurrencyBeaconFetcher) FetchRate(ccFrom, ccTo string) (rate.Rate, error) {
-	supportedCurrencies := c.SupportedCurrencies()
+func (c *CurrencyBeaconFetcher) FetchRate(
+	ctx context.Context, ccFrom, ccTo string,
+) (rate.Rate, error) {
+	supportedCurrencies := c.SupportedCurrencies(ctx)
 	if supportedCurrencies == nil {
 		err := fmt.Errorf("failed to fetch supported currencies")
 		slog.Info(
@@ -99,13 +112,13 @@ func (c *CurrencyBeaconFetcher) FetchRate(ccFrom, ccTo string) (rate.Rate, error
 		)
 		return rate.Rate{}, err
 	}
-	if !slices.Contains(c.SupportedCurrencies(), ccFrom) {
+	if !slices.Contains(supportedCurrencies, ccFrom) {
 		return rate.Rate{}, fmt.Errorf("unsupported currency: %s", ccFrom)
 	}
-	if !slices.Contains(c.SupportedCurrencies(), ccTo) {
+	if !slices.Contains(supportedCurrencies, ccTo) {
 		return rate.Rate{}, fmt.Errorf("unsupported currency: %s", ccTo)
 	}
-	result, err := c.fetchRate(ccFrom, ccTo)
+	result, err := c.fetchRate(ctx, ccFrom, ccTo)
 	slog.Info(
 		"fetched rate",
 		slog.String("fetcher", fmt.Sprint(c)),
@@ -116,7 +129,7 @@ func (c *CurrencyBeaconFetcher) FetchRate(ccFrom, ccTo string) (rate.Rate, error
 		return result, nil
 	}
 	if c.next != nil {
-		return c.next.FetchRate(ccFrom, ccTo)
+		return c.next.FetchRate(ctx, ccFrom, ccTo)
 	}
 	return rate.Rate{}, err
 }

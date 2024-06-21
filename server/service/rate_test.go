@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/Hukyl/genesis-kma-school-entry/models"
@@ -20,8 +21,8 @@ type (
 	}
 )
 
-func (m *mockRateFetcher) FetchRate(from, to string) (rate.Rate, error) {
-	args := m.Called(from, to)
+func (m *mockRateFetcher) FetchRate(ctx context.Context, from, to string) (rate.Rate, error) {
+	args := m.Called(ctx, from, to)
 	return args.Get(0).(rate.Rate), args.Error(1)
 }
 
@@ -38,7 +39,7 @@ func TestFetchRate(t *testing.T) {
 		Rate:         27.5,
 	}
 	mockFetcher := new(mockRateFetcher)
-	mockFetcher.On("FetchRate", "USD", "UAH").Return(rate.Rate{
+	mockFetcher.On("FetchRate", mock.Anything, "USD", "UAH").Return(rate.Rate{
 		CurrencyFrom: expected.CurrencyFrom,
 		CurrencyTo:   expected.CurrencyTo,
 		Rate:         expected.Rate,
@@ -50,7 +51,7 @@ func TestFetchRate(t *testing.T) {
 	s := service.NewRateService(mockRepo, mockFetcher)
 
 	// Act
-	result, err := s.FetchRate("USD", "UAH")
+	result, err := s.FetchRate(context.Background(), "USD", "UAH")
 
 	// Assert
 	assert.NoError(t, err)

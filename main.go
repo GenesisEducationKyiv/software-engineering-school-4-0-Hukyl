@@ -102,6 +102,8 @@ func main() {
 		&message.PlainRateMessage{},
 	)
 	StartCron(cronSpec, func() {
+		ctx, cancel := context.WithTimeout(ctx, server.RateTimeout)
+		defer cancel()
 		notifier.Notify(ctx)
 	})
 

@@ -44,7 +44,7 @@ func NewUsersNotifier(
 }
 
 func (n *UsersNotifier) Notify(ctx context.Context) {
-	rate, err := n.rateService.FetchRate("USD", "UAH")
+	rate, err := n.rateService.FetchRate(ctx, "USD", "UAH")
 	if err != nil {
 		slog.Warn("failed to fetch rate", slog.Any("error", err))
 		return

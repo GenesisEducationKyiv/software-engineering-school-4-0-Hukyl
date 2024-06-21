@@ -1,6 +1,7 @@
 package server_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -25,8 +26,8 @@ type (
 	}
 )
 
-func (m *mockRateService) FetchRate(from, to string) (*models.Rate, error) {
-	args := m.Called(from, to)
+func (m *mockRateService) FetchRate(ctx context.Context, from, to string) (*models.Rate, error) {
+	args := m.Called(ctx, from, to)
 	return args.Get(0).(*models.Rate), args.Error(1)
 }
 
@@ -48,7 +49,7 @@ func (m *mockUserRepository) Exists(user *models.User) (bool, error) {
 func TestGetRate(t *testing.T) {
 	mockService := new(mockRateService)
 	mockedRate := &models.Rate{Rate: 27.5}
-	mockService.On("FetchRate", "USD", "UAH").Return(mockedRate, nil)
+	mockService.On("FetchRate", mock.Anything, "USD", "UAH").Return(mockedRate, nil)
 	engine := server.NewEngine(server.Client{
 		Config:      serverCfg.Config{Port: "8080"},
 		RateService: mockService,

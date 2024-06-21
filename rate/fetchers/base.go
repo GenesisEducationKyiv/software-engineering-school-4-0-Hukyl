@@ -1,6 +1,7 @@
 package fetchers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -13,7 +14,7 @@ var ErrRateChainEnd = errors.New("rate chain end")
 // RateFetcher is an interface that defines the general behavior of a rate fetcher.
 // This fetcher interfaces presumes the use of Chain of Responsibility pattern.
 type RateFetcher interface {
-	FetchRate(ccFrom, ccTo string) (rate.Rate, error)
+	FetchRate(ctx context.Context, ccFrom, ccTo string) (rate.Rate, error)
 	SetNext(next RateFetcher)
 }
 
@@ -29,7 +30,7 @@ func (b *BaseFetcher) String() string {
 	return "BaseFetcher{}"
 }
 
-func (b *BaseFetcher) FetchRate(ccFrom, ccTo string) (rate.Rate, error) {
+func (b *BaseFetcher) FetchRate(_ context.Context, ccFrom, ccTo string) (rate.Rate, error) {
 	result := rate.Rate{
 		CurrencyFrom: ccFrom,
 		CurrencyTo:   ccTo,

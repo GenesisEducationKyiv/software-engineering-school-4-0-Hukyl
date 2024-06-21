@@ -13,8 +13,8 @@ type mockRateFetcher struct {
 	mock.Mock
 }
 
-func (m *mockRateFetcher) FetchRate(from, to string) (*models.Rate, error) {
-	args := m.Called(from, to)
+func (m *mockRateFetcher) FetchRate(ctx context.Context, from, to string) (*models.Rate, error) {
+	args := m.Called(ctx, from, to)
 	return args.Get(0).(*models.Rate), args.Error(1)
 }
 
@@ -59,7 +59,7 @@ func TestUserNotify(t *testing.T) {
 	ctx := context.Background()
 
 	rateService := new(mockRateFetcher)
-	rateService.On("FetchRate", "USD", "UAH").Return(&models.Rate{Rate: 27.5}, nil)
+	rateService.On("FetchRate", mock.Anything, "USD", "UAH").Return(&models.Rate{Rate: 27.5}, nil)
 
 	userRepository := new(mockUserRepository)
 	userRepository.On("FindAll").Return([]models.User{

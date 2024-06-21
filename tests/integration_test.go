@@ -29,7 +29,7 @@ func TestCurrencyBeaconFetchRate_NoAuthorization(t *testing.T) {
 	// Arrange
 	fetcher := fetchers.NewCurrencyBeaconFetcher("")
 	// Act
-	_, err := fetcher.FetchRate("USD", "UAH")
+	_, err := fetcher.FetchRate(context.Background(), "USD", "UAH")
 	// Assert
 	assert.Error(t, err)
 }
@@ -40,7 +40,7 @@ func TestCurrencyBeaconFetchRate_Success(t *testing.T) {
 	APIKey := os.Getenv("CURRENCY_BEACON_API_KEY")
 	fetcher := fetchers.NewCurrencyBeaconFetcher(APIKey)
 	// Act
-	result, err := fetcher.FetchRate("USD", "UAH")
+	result, err := fetcher.FetchRate(context.Background(), "USD", "UAH")
 	// Assert
 	assert.NoError(t, err)
 	assert.Equal(t, "USD", result.CurrencyFrom)
@@ -52,7 +52,7 @@ func TestNBUFetchRate(t *testing.T) {
 	// Arrange
 	fetcher := fetchers.NewNBURateFetcher()
 	// Act
-	result, err := fetcher.FetchRate("USD", "UAH")
+	result, err := fetcher.FetchRate(context.Background(), "USD", "UAH")
 	// Assert
 	assert.NoError(t, err)
 	assert.Equal(t, "USD", result.CurrencyFrom)
@@ -68,7 +68,7 @@ func TestChainFetchRate_FailFirst(t *testing.T) {
 	nbuFetcher.SetNext(baseFetcher)
 	curBeaconFetcher.SetNext(nbuFetcher)
 	// Act
-	result, err := curBeaconFetcher.FetchRate("USD", "UAH")
+	result, err := curBeaconFetcher.FetchRate(context.Background(), "USD", "UAH")
 	// Assert
 	assert.NoError(t, err)
 	assert.NotZero(t, result.Rate)
@@ -82,7 +82,7 @@ func TestRateServiceFetchRate_Success(t *testing.T) {
 	nbuFetcher.SetNext(baseFetcher)
 	rateFetcher := service.NewRateService(rateRepo, nbuFetcher)
 	// Act
-	result, err := rateFetcher.FetchRate("USD", "UAH")
+	result, err := rateFetcher.FetchRate(context.Background(), "USD", "UAH")
 	// Assert
 	assert.NoError(t, err)
 	assert.Equal(t, "USD", result.CurrencyFrom)

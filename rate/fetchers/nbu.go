@@ -1,6 +1,7 @@
 package fetchers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -28,7 +29,7 @@ type NBURateFetcher struct {
 	next RateFetcher
 }
 
-func (n *NBURateFetcher) SupportedCurrencies() []string {
+func (n *NBURateFetcher) SupportedCurrencies(_ context.Context) []string {
 	return []string{"UAH", "USD"}
 }
 
@@ -39,7 +40,7 @@ func (n *NBURateFetcher) formatURL(cc string, date time.Time) string {
 	return fmt.Sprintf(baseURL, cc, currentDate)
 }
 
-func (n *NBURateFetcher) fetchRate(ccFrom, ccTo string) (rate.Rate, error) {
+func (n *NBURateFetcher) fetchRate(ctx context.Context, ccFrom, ccTo string) (rate.Rate, error) {
 	if ccTo != "UAH" {
 		return rate.Rate{}, fmt.Errorf("invalid currency from: %s", ccFrom)
 	}
@@ -48,10 +49,15 @@ func (n *NBURateFetcher) fetchRate(ccFrom, ccTo string) (rate.Rate, error) {
 		CurrencyTo:   ccTo,
 		Time:         time.Now(),
 	}
-	if !slices.Contains(n.SupportedCurrencies(), ccFrom) {
+	if !slices.Contains(n.SupportedCurrencies(ctx), ccFrom) {
 		return result, fmt.Errorf("unsupported currency: %s", ccFrom)
 	}
-	resp, err := http.Get(n.formatURL(ccFrom, time.Now()))
+	formattedURL := n.formatURL(ccFrom, time.Now())
+	req, err := http.NewRequest(http.MethodGet, formattedURL, nil)
+	if err != nil {
+		return result, err
+	}
+	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return result, err
 	}
@@ -69,8 +75,8 @@ func (n *NBURateFetcher) fetchRate(ccFrom, ccTo string) (rate.Rate, error) {
 	return result, nil
 }
 
-func (n *NBURateFetcher) FetchRate(ccFrom, ccTo string) (rate.Rate, error) {
-	result, err := n.fetchRate(ccFrom, ccTo)
+func (n *NBURateFetcher) FetchRate(ctx context.Context, ccFrom, ccTo string) (rate.Rate, error) {
+	result, err := n.fetchRate(ctx, ccFrom, ccTo)
 	slog.Info(
 		"Fetched rate",
 		slog.String("fetcher", fmt.Sprint(n)), slog.Any("rate", result), slog.Any("error", err),
@@ -79,7 +85,7 @@ func (n *NBURateFetcher) FetchRate(ccFrom, ccTo string) (rate.Rate, error) {
 		return result, nil
 	}
 	if n.next != nil {
-		return n.next.FetchRate(ccFrom, ccTo)
+		return n.next.FetchRate(ctx, ccFrom, ccTo)
 	}
 	return rate.Rate{}, err
 }

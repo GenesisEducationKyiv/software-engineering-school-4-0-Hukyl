@@ -6,7 +6,13 @@
         "gorm",
         "gonic",
         "gomail",
-        "smtpmock"
+        "smtpmock",
+        "ericchiang",
+        "stretchr",
+        "valcode",
+        "tbody",
+        "Rcptto",
+        "nolint",
     ],
     "cSpell.ignorePaths": [
         ".vscode",
