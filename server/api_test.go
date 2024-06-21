@@ -1,7 +1,6 @@
 package server_test
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -17,32 +16,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEmptyContext(t *testing.T) {
-	engine := server.NewEngine(context.Background())
-	req, err := http.NewRequest("GET", "/rate", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr := httptest.NewRecorder()
-	engine.ServeHTTP(rr, req)
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
-}
-
 func TestGetRate(t *testing.T) {
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, settings.DebugKey, true)
-	apiClient := server.Client{
+	engine := server.NewEngine(server.Client{
 		Config:      serverCfg.NewFromEnv(),
 		RateFetcher: rate.NewNBURateFetcher(),
-	}
-	ctx = context.WithValue(ctx, settings.APIClientKey, apiClient)
-	engine := server.NewEngine(ctx)
+	})
 
 	// FIXME: tests should not depend on external services
-	req, err := http.NewRequest("GET", "/rate", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := httptest.NewRequest(http.MethodGet, "/rate", nil)
 	rr := httptest.NewRecorder()
 	engine.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
@@ -52,39 +33,25 @@ func TestGetRate(t *testing.T) {
 }
 
 func TestSubscribeUserNoEmail(t *testing.T) {
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, settings.DebugKey, true)
-	apiClient := server.Client{
+	engine := server.NewEngine(server.Client{
 		Config:      serverCfg.NewFromEnv(),
 		RateFetcher: rate.NewNBURateFetcher(),
-	}
-	ctx = context.WithValue(ctx, settings.APIClientKey, apiClient)
-	engine := server.NewEngine(ctx)
+	})
 
-	req, err := http.NewRequest("POST", "/subscribe", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := httptest.NewRequest(http.MethodPost, "/subscribe", nil)
 	rr := httptest.NewRecorder()
 	engine.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
 func TestSubscribeUser(t *testing.T) {
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, settings.DebugKey, true)
-	apiClient := server.Client{
+	engine := server.NewEngine(server.Client{
 		Config:      serverCfg.NewFromEnv(),
 		RateFetcher: rate.NewNBURateFetcher(),
-		DB:          database.SetUpTest(t, &models.User{}),
-	}
-	ctx = context.WithValue(ctx, settings.APIClientKey, apiClient)
-	engine := server.NewEngine(ctx)
+		UserRepo:    *models.NewUserRepository(database.SetUpTest(t, &models.User{})),
+	})
 
-	req, err := http.NewRequest("POST", "/subscribe", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := httptest.NewRequest(http.MethodPost, "/subscribe", nil)
 	req.PostForm = map[string][]string{
 		"email": {"example@gmail.com"},
 	}
@@ -94,20 +61,13 @@ func TestSubscribeUser(t *testing.T) {
 }
 
 func TestSubscribeUserAlreadySubscribed(t *testing.T) {
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, settings.DebugKey, true)
-	apiClient := server.Client{
+	engine := server.NewEngine(server.Client{
 		Config:      serverCfg.NewFromEnv(),
 		RateFetcher: rate.NewNBURateFetcher(),
-		DB:          database.SetUpTest(t, &models.User{}),
-	}
-	ctx = context.WithValue(ctx, settings.APIClientKey, apiClient)
-	engine := server.NewEngine(ctx)
+		UserRepo:    *models.NewUserRepository(database.SetUpTest(t, &models.User{})),
+	})
 
-	req, err := http.NewRequest("POST", "/subscribe", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := httptest.NewRequest(http.MethodPost, "/subscribe", nil)
 	req.PostForm = map[string][]string{
 		"email": {"example@gmail.com"},
 	}

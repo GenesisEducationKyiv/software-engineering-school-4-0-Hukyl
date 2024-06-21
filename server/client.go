@@ -1,10 +1,9 @@
 package server
 
 import (
-	"github.com/Hukyl/genesis-kma-school-entry/database"
+	"github.com/Hukyl/genesis-kma-school-entry/models"
 	"github.com/Hukyl/genesis-kma-school-entry/rate"
 	"github.com/Hukyl/genesis-kma-school-entry/server/config"
-	"github.com/gin-gonic/gin"
 )
 
 type RateFetcher interface {
@@ -14,6 +13,5 @@ type RateFetcher interface {
 type Client struct {
 	Config      config.Config
 	RateFetcher RateFetcher
-	Engine      *gin.Engine
-	DB          *database.DB
+	UserRepo    models.UserRepository
 }

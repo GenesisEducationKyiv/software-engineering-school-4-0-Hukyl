@@ -45,39 +45,43 @@ func main() {
 		os.Getenv("DEBUG") == "true",
 	)
 
-	mc := &mail.Client{Config: mailCfg.NewFromEnv()}
+	// Initialize database
 	db, err := database.New(dbCfg.NewFromEnv())
 	if err != nil {
 		slog.Error("failed to initialize database", slog.Any("error", err))
 		panic(err)
 	}
-	apiClient := server.Client{
-		Config:      serverCfg.NewFromEnv(),
-		RateFetcher: rate.NewNBURateFetcher(),
-		DB:          db,
-	}
-	ctx = context.WithValue(ctx, settings.APIClientKey, apiClient)
-	apiClient.Engine = server.NewEngine(ctx)
-
-	if err := apiClient.DB.Migrate(&models.User{}); err != nil {
+	if err := db.Migrate(&models.User{}); err != nil {
 		slog.Error("failed to migrate database", slog.Any("error", err))
 		panic(err)
 	}
 
+	apiClient := server.Client{
+		Config:      serverCfg.NewFromEnv(),
+		RateFetcher: rate.NewNBURateFetcher(),
+		UserRepo:    *models.NewUserRepository(db),
+	}
+
+	// Start cron job for notifications
 	cronSpec := os.Getenv("CRON_SPEC")
 	if cronSpec == "" {
+		slog.Warn(
+			"CRON_SPEC is not set, using default value",
+			slog.Any("default", defaultCronSpec),
+		)
 		cronSpec = defaultCronSpec
 	}
 	notifier := notifications.NewUsersNotifier(
-		mc,
+		&mail.Client{Config: mailCfg.NewFromEnv()},
 		apiClient.RateFetcher,
-		models.NewUserRepository(apiClient.DB),
+		&apiClient.UserRepo,
 	)
 	StartCron(cronSpec, func() {
 		notifier.Notify(ctx)
 	})
 
-	s := server.NewServer(apiClient.Config, apiClient.Engine)
+	// Start HTTP server
+	s := server.NewServer(apiClient.Config, server.NewEngine(apiClient))
 	if err := s.ListenAndServe(); err != nil {
 		slog.Error("HTTP server error occurred", slog.Any("error", err))
 	}

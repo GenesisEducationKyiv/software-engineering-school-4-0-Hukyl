@@ -18,5 +18,4 @@ type ContextKey int
 
 const (
 	DebugKey ContextKey = iota
-	APIClientKey
 )

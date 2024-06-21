@@ -2,7 +2,6 @@ package notifications
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/Hukyl/genesis-kma-school-entry/models"
@@ -53,8 +52,8 @@ func (n *UsersNotifier) Notify(ctx context.Context) {
 		slog.Any("userCount", len(users)),
 	)
 	for _, user := range users {
-		message := fmt.Sprintf("1 USD = %f UAH", rate.Rate)
-		if err := n.mailClient.SendEmail(ctx, user.Email, message); err != nil {
+		message := NewRateMessage(rate)
+		if err := n.mailClient.SendEmail(ctx, user.Email, message.String()); err != nil {
 			slog.Error(
 				"failed sending email",
 				slog.Any("error", err),
