@@ -14,5 +14,9 @@
     ],
     "cSpell.words": [
         "Dialector",
-    ]
+    ],
+    "go.buildFlags": [
+        "-tags",
+        "integration",
+    ],
 }
