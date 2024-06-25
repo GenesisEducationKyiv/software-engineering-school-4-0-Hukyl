@@ -30,7 +30,7 @@ func TestInvalidConfig(t *testing.T) {
 	}
 	db, err := database.New(config)
 	assert.Nil(t, db)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestInit(t *testing.T) {
@@ -40,7 +40,7 @@ func TestInit(t *testing.T) {
 	}
 	db := database.DB{Config: config}
 	err := db.Init()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestInitFail(t *testing.T) {
@@ -50,33 +50,33 @@ func TestInitFail(t *testing.T) {
 	}
 	db := database.DB{Config: config}
 	err := db.Init()
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestMigrateNull(t *testing.T) {
 	db := database.SetUpTest(t)
 	err := db.Migrate()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestMigrateModels(t *testing.T) {
 	db := database.SetUpTest(t)
 	err := db.Migrate(&MockUser{})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestMigrateModelsMultipleTimes(t *testing.T) {
 	db := database.SetUpTest(t)
 	err := db.Migrate(&MockUser{})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	err = db.Migrate(&MockUser{})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestMigrateEmptyModel(t *testing.T) {
 	db := database.SetUpTest(t)
 	err := db.Migrate(&EmptyStruct{})
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestNew(t *testing.T) {
@@ -86,7 +86,7 @@ func TestNew(t *testing.T) {
 	}
 	db, err := database.New(config)
 	assert.NotNil(t, db)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestNewFail(t *testing.T) {
@@ -96,5 +96,5 @@ func TestNewFail(t *testing.T) {
 	}
 	db, err := database.New(config)
 	assert.Nil(t, db)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }

@@ -27,6 +27,7 @@ func SetUpTest(tb testing.TB, models ...any) *DB {
 				tb.Errorf("failed to drop table: %v", err)
 			}
 		}
+		db.Close()
 	})
 	return db
 }

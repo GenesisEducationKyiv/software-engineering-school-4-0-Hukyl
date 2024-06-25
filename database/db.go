@@ -93,6 +93,23 @@ func (d *DB) Migrate(models ...any) error {
 	return nil
 }
 
+func (d *DB) Close() error {
+	if d.conn == nil {
+		return nil
+	}
+	sqlDB, err := d.conn.DB()
+	if err != nil {
+		slog.Error("closing database connection", slog.Any("error", err))
+	}
+	err = sqlDB.Close()
+	if err != nil {
+		slog.Error("closing database connection", slog.Any("error", err))
+		return fmt.Errorf("failed to close connection to database: %w", err)
+	}
+	slog.Info("closing connection to db")
+	return nil
+}
+
 func New(c config.Config) (*DB, error) {
 	db := DB{Config: c}
 	err := db.Init()
