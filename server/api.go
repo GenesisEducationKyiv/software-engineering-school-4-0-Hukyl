@@ -25,7 +25,7 @@ type UserRepository interface {
 // from a RateFetcher interface and returns it as a JSON response.
 func NewGetRateHandler(rateService RateService, timeout time.Duration) func(*gin.Context) {
 	return func(c *gin.Context) {
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := context.WithTimeout(c.Request.Context(), timeout)
 		defer cancel()
 		rate, err := rateService.FetchRate(ctx, ccFrom, ccTo)
 		if err != nil {
