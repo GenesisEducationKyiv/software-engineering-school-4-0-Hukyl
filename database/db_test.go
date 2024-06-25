@@ -6,6 +6,7 @@ import (
 	"github.com/Hukyl/genesis-kma-school-entry/database"
 	"github.com/Hukyl/genesis-kma-school-entry/database/config"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type MockUser struct {
@@ -68,7 +69,7 @@ func TestMigrateModels(t *testing.T) {
 func TestMigrateModelsMultipleTimes(t *testing.T) {
 	db := database.SetUpTest(t)
 	err := db.Migrate(&MockUser{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = db.Migrate(&MockUser{})
 	assert.NoError(t, err)
 }

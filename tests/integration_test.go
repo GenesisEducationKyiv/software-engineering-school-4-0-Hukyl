@@ -23,6 +23,7 @@ import (
 	"github.com/Hukyl/genesis-kma-school-entry/settings"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCurrencyBeaconFetchRate_NoAuthorization(t *testing.T) {
@@ -40,7 +41,7 @@ func TestNBUFetchRate(t *testing.T) {
 	// Act
 	result, err := fetcher.FetchRate(context.Background(), "USD", "UAH")
 	// Assert
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "USD", result.CurrencyFrom)
 	assert.Equal(t, "UAH", result.CurrencyTo)
 	assert.NotZero(t, result.Rate)
@@ -56,7 +57,7 @@ func TestChainFetchRate_FailFirst(t *testing.T) {
 	// Act
 	result, err := curBeaconFetcher.FetchRate(context.Background(), "USD", "UAH")
 	// Assert
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotZero(t, result.Rate)
 }
 
@@ -70,7 +71,7 @@ func TestRateServiceFetchRate_Success(t *testing.T) {
 	// Act
 	result, err := rateFetcher.FetchRate(context.Background(), "USD", "UAH")
 	// Assert
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "USD", result.CurrencyFrom)
 	assert.Equal(t, "UAH", result.CurrencyTo)
 	assert.NotZero(t, result.Rate)
@@ -143,7 +144,7 @@ func TestSubscribeUser_Success(t *testing.T) {
 	// Assert
 	assert.Equal(t, http.StatusOK, rr.Code)
 	exists, err := repo.Exists(user)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.True(t, exists)
 }
 
@@ -152,7 +153,7 @@ func TestSubscribeUser_Conflict(t *testing.T) {
 	// Arrange
 	repo := models.NewUserRepository(database.SetUpTest(t, &models.User{}))
 	err := repo.Create(user)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	engine := server.NewEngine(server.Client{
 		Config:   serverCfg.Config{Port: "8080"},
 		UserRepo: repo,
@@ -167,7 +168,7 @@ func TestSubscribeUser_Conflict(t *testing.T) {
 	// Assert
 	assert.Equal(t, http.StatusConflict, rr.Code)
 	exists, err := repo.Exists(user)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.True(t, exists)
 }
 

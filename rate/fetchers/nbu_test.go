@@ -6,6 +6,7 @@ import (
 
 	"github.com/Hukyl/genesis-kma-school-entry/rate/fetchers"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNBUUnsupportedCurrency(t *testing.T) {
@@ -17,7 +18,7 @@ func TestNBUUnsupportedCurrency(t *testing.T) {
 func TestNBUFetchRate(t *testing.T) {
 	nbu := fetchers.NewNBURateFetcher()
 	rate, err := nbu.FetchRate(context.Background(), "USD", "UAH")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Greater(t, rate.Rate, float32(0))
 }
 

@@ -25,4 +25,8 @@
         "-tags",
         "integration",
     ],
+    "go.lintFlags": [
+        "--build-tags",
+        "integration",
+    ]
 }

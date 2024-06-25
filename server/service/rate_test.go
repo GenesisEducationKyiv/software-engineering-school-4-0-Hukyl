@@ -9,6 +9,7 @@ import (
 	"github.com/Hukyl/genesis-kma-school-entry/server/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 type (
@@ -54,7 +55,7 @@ func TestFetchRate(t *testing.T) {
 	result, err := s.FetchRate(context.Background(), "USD", "UAH")
 
 	// Assert
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, expected, result)
 	mockFetcher.AssertExpectations(t)
 }

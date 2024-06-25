@@ -26,6 +26,7 @@ linters:
     - sloglint
     - staticcheck
     - tagalign
+    - testifylint
     - thelper
     - unused
     - whitespace

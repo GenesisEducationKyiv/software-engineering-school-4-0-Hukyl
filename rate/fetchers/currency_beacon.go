@@ -31,7 +31,7 @@ func (c *CurrencyBeaconFetcher) SupportedCurrencies(ctx context.Context) []strin
 	if c.supportedCurrencies != nil {
 		return c.supportedCurrencies
 	}
-	req, err := http.NewRequest(http.MethodGet, supportedCurrenciesURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, supportedCurrenciesURL, nil)
 	if err != nil {
 		slog.Error(
 			"creating request",
@@ -39,7 +39,7 @@ func (c *CurrencyBeaconFetcher) SupportedCurrencies(ctx context.Context) []strin
 		)
 		return nil
 	}
-	response, err := http.DefaultClient.Do(req.WithContext(ctx))
+	response, err := http.DefaultClient.Do(req)
 	slog.Info(
 		"fetching supported currencies",
 		slog.String("fetcher", fmt.Sprint(c)), slog.Any("error", err),
@@ -69,11 +69,11 @@ func (c *CurrencyBeaconFetcher) fetchRate(
 	ctx context.Context, ccFrom, ccTo string,
 ) (rate.Rate, error) {
 	formattedURL := fmt.Sprintf(baseURL, c.APIKey, ccFrom, ccTo)
-	req, err := http.NewRequest(http.MethodGet, formattedURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, formattedURL, nil)
 	if err != nil {
 		return rate.Rate{}, err
 	}
-	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return rate.Rate{}, err
 	}

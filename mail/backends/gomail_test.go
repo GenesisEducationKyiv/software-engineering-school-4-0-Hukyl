@@ -9,6 +9,7 @@ import (
 	"github.com/Hukyl/genesis-kma-school-entry/mail/backends"
 	"github.com/Hukyl/genesis-kma-school-entry/mail/config"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSendEmail_InvalidPort(t *testing.T) {
@@ -64,7 +65,7 @@ func TestSendEmail_Success(t *testing.T) {
 		SMTPPassword: "password",
 	})
 	err := gm.SendEmail(ctx, "example2@gmail.com", "subject", "message")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, smtpServer.Messages(), 1)
 }
 
@@ -134,7 +135,7 @@ func TestVariousParameters(t *testing.T) {
 				assert.Error(t, err)
 				return
 			}
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Len(t, smtpServer.Messages(), 1)
 		})
 	}

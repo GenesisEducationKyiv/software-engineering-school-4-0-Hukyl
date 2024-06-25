@@ -6,6 +6,7 @@ import (
 	"github.com/Hukyl/genesis-kma-school-entry/database"
 	"github.com/Hukyl/genesis-kma-school-entry/models"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRateRepositoryCreate(t *testing.T) {
@@ -13,7 +14,7 @@ func TestRateRepositoryCreate(t *testing.T) {
 	repo := models.NewRateRepository(db)
 	rate := &models.Rate{CurrencyFrom: "USD", CurrencyTo: "UAH", Rate: 27.5}
 	err := repo.Create(rate)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotZero(t, rate.ID)
 	assert.NotNil(t, rate.Created)
 }

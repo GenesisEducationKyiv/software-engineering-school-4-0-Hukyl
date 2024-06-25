@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 type (
@@ -60,7 +61,7 @@ func TestGetRate(t *testing.T) {
 	engine.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
 	rate, err := strconv.ParseFloat(rr.Body.String(), 32)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.InDelta(t, rate, mockedRate.Rate, 0.001)
 }
 
