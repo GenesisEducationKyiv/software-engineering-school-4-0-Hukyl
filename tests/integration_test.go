@@ -26,11 +26,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	ccFrom = "USD"
+	ccTo   = "UAH"
+)
+
 func TestCurrencyBeaconFetchRate_NoAuthorization(t *testing.T) {
 	// Arrange
 	fetcher := fetchers.NewCurrencyBeaconFetcher("")
 	// Act
-	_, err := fetcher.FetchRate(context.Background(), "USD", "UAH")
+	_, err := fetcher.FetchRate(context.Background(), ccFrom, ccTo)
 	// Assert
 	assert.Error(t, err)
 }
@@ -39,23 +44,21 @@ func TestNBUFetchRate(t *testing.T) {
 	// Arrange
 	fetcher := fetchers.NewNBURateFetcher()
 	// Act
-	result, err := fetcher.FetchRate(context.Background(), "USD", "UAH")
+	result, err := fetcher.FetchRate(context.Background(), ccFrom, ccTo)
 	// Assert
 	require.NoError(t, err)
-	assert.Equal(t, "USD", result.CurrencyFrom)
-	assert.Equal(t, "UAH", result.CurrencyTo)
+	assert.Equal(t, ccFrom, result.CurrencyFrom)
+	assert.Equal(t, ccTo, result.CurrencyTo)
 	assert.NotZero(t, result.Rate)
 }
 
 func TestChainFetchRate_FailFirst(t *testing.T) {
 	// Arrange
-	baseFetcher := fetchers.NewBaseFetcher()
 	nbuFetcher := fetchers.NewNBURateFetcher()
 	curBeaconFetcher := fetchers.NewCurrencyBeaconFetcher("")
-	nbuFetcher.SetNext(baseFetcher)
 	curBeaconFetcher.SetNext(nbuFetcher)
 	// Act
-	result, err := curBeaconFetcher.FetchRate(context.Background(), "USD", "UAH")
+	result, err := curBeaconFetcher.FetchRate(context.Background(), ccFrom, ccTo)
 	// Assert
 	require.NoError(t, err)
 	assert.NotZero(t, result.Rate)
@@ -64,16 +67,14 @@ func TestChainFetchRate_FailFirst(t *testing.T) {
 func TestRateServiceFetchRate_Success(t *testing.T) {
 	// Arrange
 	rateRepo := models.NewRateRepository(database.SetUpTest(t, &models.Rate{}))
-	baseFetcher := fetchers.NewBaseFetcher()
 	nbuFetcher := fetchers.NewNBURateFetcher()
-	nbuFetcher.SetNext(baseFetcher)
 	rateFetcher := service.NewRateService(rateRepo, nbuFetcher)
 	// Act
-	result, err := rateFetcher.FetchRate(context.Background(), "USD", "UAH")
+	result, err := rateFetcher.FetchRate(context.Background(), ccFrom, ccTo)
 	// Assert
 	require.NoError(t, err)
-	assert.Equal(t, "USD", result.CurrencyFrom)
-	assert.Equal(t, "UAH", result.CurrencyTo)
+	assert.Equal(t, ccFrom, result.CurrencyFrom)
+	assert.Equal(t, ccTo, result.CurrencyTo)
 	assert.NotZero(t, result.Rate)
 }
 

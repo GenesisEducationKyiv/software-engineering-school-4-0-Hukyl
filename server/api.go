@@ -12,6 +12,8 @@ import (
 const (
 	RatePath      = "/rate"
 	SubscribePath = "/subscribe"
+	ccFrom        = "USD"
+	ccTo          = "UAH"
 )
 
 type UserRepository interface {
@@ -25,7 +27,7 @@ func NewGetRateHandler(rateService RateService, timeout time.Duration) func(*gin
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
-		rate, err := rateService.FetchRate(ctx, "USD", "UAH")
+		rate, err := rateService.FetchRate(ctx, ccFrom, ccTo)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, err.Error())
 			return

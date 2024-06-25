@@ -34,13 +34,15 @@ func (m *mockRateRepository) Create(rate *models.Rate) error {
 
 func TestFetchRate(t *testing.T) {
 	// Arrange
+	ccFrom := "USD"
+	ccTo := "UAH"
 	expected := &models.Rate{
-		CurrencyFrom: "USD",
-		CurrencyTo:   "UAH",
+		CurrencyFrom: ccFrom,
+		CurrencyTo:   ccTo,
 		Rate:         27.5,
 	}
 	mockFetcher := new(mockRateFetcher)
-	mockFetcher.On("FetchRate", mock.Anything, "USD", "UAH").Return(rate.Rate{
+	mockFetcher.On("FetchRate", mock.Anything, ccFrom, ccTo).Return(rate.Rate{
 		CurrencyFrom: expected.CurrencyFrom,
 		CurrencyTo:   expected.CurrencyTo,
 		Rate:         expected.Rate,
@@ -52,7 +54,7 @@ func TestFetchRate(t *testing.T) {
 	s := service.NewRateService(mockRepo, mockFetcher)
 
 	// Act
-	result, err := s.FetchRate(context.Background(), "USD", "UAH")
+	result, err := s.FetchRate(context.Background(), ccFrom, ccTo)
 
 	// Assert
 	require.NoError(t, err)

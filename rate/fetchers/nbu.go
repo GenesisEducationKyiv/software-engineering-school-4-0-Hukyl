@@ -21,7 +21,7 @@ import (
 // Example usage:
 //
 //	fetcher := NewNBURateFetcher()
-//	rate, err := fetcher.FetchRate("USD", "UAH")
+//	rate, err := fetcher.FetchRate(context.Background(), "USD", "UAH")
 //	if err != nil {
 //		log.Fatal(err)
 //	}
@@ -30,8 +30,10 @@ type NBURateFetcher struct {
 	next RateFetcher
 }
 
+const uahCC = "UAH"
+
 func (n *NBURateFetcher) SupportedCurrencies(_ context.Context) []string {
-	return []string{"UAH", "USD"}
+	return []string{uahCC, "USD"}
 }
 
 func (n *NBURateFetcher) formatURL(cc string, date time.Time) string {
@@ -42,7 +44,7 @@ func (n *NBURateFetcher) formatURL(cc string, date time.Time) string {
 }
 
 func (n *NBURateFetcher) fetchRate(ctx context.Context, ccFrom, ccTo string) (rate.Rate, error) {
-	if ccTo != "UAH" {
+	if ccTo != uahCC {
 		return rate.Rate{}, fmt.Errorf("invalid currency from: %s", ccFrom)
 	}
 	result := rate.Rate{

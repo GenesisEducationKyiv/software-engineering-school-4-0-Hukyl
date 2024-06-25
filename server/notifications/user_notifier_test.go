@@ -2,6 +2,7 @@ package notifications_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/Hukyl/genesis-kma-school-entry/models"
@@ -57,9 +58,15 @@ func (m *mockEmailClient) SendEmail(ctx context.Context, email, subject, message
 func TestUserNotify(t *testing.T) {
 	// Arrange
 	ctx := context.Background()
+	ccFrom := "USD"
+	ccTo := "UAH"
 
 	rateService := new(mockRateFetcher)
-	rateService.On("FetchRate", mock.Anything, "USD", "UAH").Return(&models.Rate{Rate: 27.5}, nil)
+	rateService.On("FetchRate", mock.Anything, ccFrom, ccTo).Return(&models.Rate{
+		Rate:         27.5,
+		CurrencyFrom: ccFrom,
+		CurrencyTo:   ccTo,
+	}, nil)
 
 	userRepository := new(mockUserRepository)
 	userRepository.On("FindAll").Return([]models.User{
@@ -76,9 +83,13 @@ func TestUserNotify(t *testing.T) {
 	).Return(nil).Once()
 
 	messageFormatter := new(mockMessageFormatter)
-	messageFormatter.On("SetRate", &models.Rate{Rate: 27.5}).Return()
-	messageFormatter.On("Subject").Return("USD-UAH exchange rate")
-	messageFormatter.On("String").Return("1 USD = 27.5 UAH")
+	messageFormatter.On("SetRate", &models.Rate{
+		Rate:         27.5,
+		CurrencyFrom: ccFrom,
+		CurrencyTo:   ccTo,
+	}).Return()
+	messageFormatter.On("Subject").Return(fmt.Sprintf("%s-%s exchange rate", ccFrom, ccTo))
+	messageFormatter.On("String").Return(fmt.Sprintf("1 %s = 27.5 %s", ccFrom, ccTo))
 
 	notifier := notifications.NewUsersNotifier(
 		emailClient,
