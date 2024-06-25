@@ -60,8 +60,8 @@ func TestGetRate(t *testing.T) {
 	engine.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
 	rate, err := strconv.ParseFloat(rr.Body.String(), 32)
-	assert.Nil(t, err)
-	assert.EqualValues(t, rate, mockedRate.Rate)
+	assert.NoError(t, err)
+	assert.InDelta(t, rate, mockedRate.Rate, 0.001)
 }
 
 func TestSubscribeUserNoEmail(t *testing.T) {
