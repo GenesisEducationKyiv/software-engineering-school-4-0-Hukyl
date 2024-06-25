@@ -48,12 +48,10 @@ func InitDatabase() (*database.DB, error) {
 
 func InitFetchers() fetchers.RateFetcher {
 	// Initialize rate fetcher chain of responsibilities
-	baseFetcher := fetchers.NewBaseFetcher()
 	nbuFetcher := fetchers.NewNBURateFetcher()
 	currencyBeaconFetcher := fetchers.NewCurrencyBeaconFetcher(
 		os.Getenv("CURRENCY_BEACON_API_KEY"),
 	)
-	nbuFetcher.SetNext(baseFetcher)
 	currencyBeaconFetcher.SetNext(nbuFetcher)
 	return currencyBeaconFetcher
 }
