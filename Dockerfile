@@ -8,7 +8,7 @@ COPY . .
 ENV GOCACHE=/root/.cache/go-build
 RUN --mount=type=cache,target="/root/.cache/go-build" CGO_ENABLED=0 GOOS=linux go build -o /api-server .
 
-FROM alpine:latest as production_stage
+FROM scratch as production_stage
 COPY --from=build_stage /api-server /api-server
 EXPOSE 8080
 ENTRYPOINT ["/api-server"]
