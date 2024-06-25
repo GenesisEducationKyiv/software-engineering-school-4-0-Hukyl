@@ -3,6 +3,7 @@ package fetchers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -69,7 +70,7 @@ func (n *NBURateFetcher) fetchRate(ctx context.Context, ccFrom, ccTo string) (ra
 		return result, err
 	}
 	if len(data) == 0 {
-		return result, fmt.Errorf("no rate data found")
+		return result, errors.New("no rate data found")
 	}
 	result.Rate = data[0].Rate
 	return result, nil

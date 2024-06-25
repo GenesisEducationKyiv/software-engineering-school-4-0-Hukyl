@@ -3,6 +3,7 @@ package fetchers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -89,7 +90,7 @@ func (c *CurrencyBeaconFetcher) fetchRate(
 	}
 	value, ok := data.Rates[ccTo]
 	if !ok {
-		return rate.Rate{}, fmt.Errorf("rate not found")
+		return rate.Rate{}, errors.New("rate not found")
 	}
 	return rate.Rate{
 		CurrencyFrom: ccFrom,
@@ -104,7 +105,7 @@ func (c *CurrencyBeaconFetcher) FetchRate(
 ) (rate.Rate, error) {
 	supportedCurrencies := c.SupportedCurrencies(ctx)
 	if supportedCurrencies == nil {
-		err := fmt.Errorf("failed to fetch supported currencies")
+		err := errors.New("failed to fetch supported currencies")
 		slog.Info(
 			"fetching rate",
 			slog.String("fetcher", fmt.Sprint(c)),

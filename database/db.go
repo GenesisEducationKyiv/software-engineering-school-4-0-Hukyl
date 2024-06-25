@@ -69,7 +69,7 @@ func (d *DB) Init() error {
 	// Initialize first connection with the database
 	conn := d.Connection()
 	if conn == nil {
-		return fmt.Errorf("failed to connect to database")
+		return errors.New("failed to connect to database")
 	}
 	return nil
 }
@@ -77,7 +77,7 @@ func (d *DB) Init() error {
 func (d *DB) Migrate(models ...any) error {
 	conn := d.Connection()
 	if conn == nil {
-		return fmt.Errorf("failed to connect to database")
+		return errors.New("failed to connect to database")
 	}
 	for _, m := range models {
 		err := conn.AutoMigrate(m)
