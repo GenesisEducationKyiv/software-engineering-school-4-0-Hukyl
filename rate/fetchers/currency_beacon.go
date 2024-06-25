@@ -16,11 +16,15 @@ import (
 )
 
 const (
-	cssSelector            string = "tbody tr > td:first-child > a"
-	supportedCurrenciesURL string = "https://currencybeacon.com/supported-currencies"
-	baseURL                string = "https://api.currencybeacon.com/v1/latest?api_key=%s&base=%s&symbols=%s" // nolint: lll
-
+	cssSelector            = "tbody tr > td:first-child > a"
+	supportedCurrenciesURL = "https://currencybeacon.com/supported-currencies"
+	baseURL                = "https://api.currencybeacon.com/v1/latest?" +
+		"api_key=%s&base=%s&symbols=%s"
 )
+
+type endpointResponse struct {
+	Rates map[string]float32 `json:"rates"`
+}
 
 type CurrencyBeaconFetcher struct {
 	APIKey              string
@@ -82,9 +86,7 @@ func (c *CurrencyBeaconFetcher) fetchRate(
 	if resp.StatusCode != http.StatusOK {
 		return rate.Rate{}, fmt.Errorf("fetching url: %s", resp.Status)
 	}
-	var data struct {
-		Rates map[string]float32 `json:"rates"`
-	}
+	var data endpointResponse
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return rate.Rate{}, err
 	}

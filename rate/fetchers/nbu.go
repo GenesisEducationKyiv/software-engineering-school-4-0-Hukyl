@@ -36,7 +36,7 @@ func (n *NBURateFetcher) SupportedCurrencies(_ context.Context) []string {
 
 func (n *NBURateFetcher) formatURL(cc string, date time.Time) string {
 	currentDate := fmt.Sprintf("%d%02d%02d", date.Year(), date.Month(), date.Day())
-	baseURL := "https://bank.gov.ua/NBUStatService/v1/statdirectory/" +
+	const baseURL = "https://bank.gov.ua/NBUStatService/v1/statdirectory/" +
 		"exchange?valcode=%s&date=%s&json"
 	return fmt.Sprintf(baseURL, cc, currentDate)
 }

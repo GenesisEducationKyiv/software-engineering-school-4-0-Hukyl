@@ -102,7 +102,7 @@ func main() {
 		mail.NewClient(mailer),
 		apiClient.RateService,
 		userRepo,
-		&message.PlainRateMessage{},
+		&message.PlainRate{},
 	)
 	StartCron(cronSpec, func() {
 		ctx, cancel := context.WithTimeout(context.Background(), server.RateTimeout)

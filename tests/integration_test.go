@@ -98,7 +98,7 @@ func TestUserNotificationsRecipients(t *testing.T) {
 			SMTPPassword: "password",
 		},
 	))
-	messageFormatter := message.PlainRateMessage{}
+	messageFormatter := message.PlainRate{}
 	notifier := notifications.NewUsersNotifier(
 		emailClient, rateService, repo, &messageFormatter,
 	)
