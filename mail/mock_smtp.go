@@ -15,10 +15,10 @@ func MockSMTPServer(t *testing.T) *smtpmock.Server {
 		HostAddress: Localhost,
 	})
 	err := smtpServer.Start()
-	assert.Nil(t, err, "failed to start smtp server")
+	assert.NoError(t, err, "failed to start smtp server")
 	t.Cleanup(func() {
 		err := smtpServer.Stop()
-		assert.Nil(t, err, "failed to stop smtp server")
+		assert.NoError(t, err, "failed to stop smtp server")
 	})
 	return smtpServer
 }

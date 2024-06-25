@@ -8,6 +8,7 @@ import (
 	"github.com/Hukyl/genesis-kma-school-entry/database"
 	dbCfg "github.com/Hukyl/genesis-kma-school-entry/database/config"
 	"github.com/Hukyl/genesis-kma-school-entry/mail"
+	"github.com/Hukyl/genesis-kma-school-entry/mail/backends"
 	mailCfg "github.com/Hukyl/genesis-kma-school-entry/mail/config"
 	"github.com/Hukyl/genesis-kma-school-entry/models"
 	"github.com/Hukyl/genesis-kma-school-entry/rate/fetchers"
@@ -63,12 +64,7 @@ func main() {
 		panic(err)
 	}
 
-	ctx := context.Background()
-	ctx = context.WithValue(
-		ctx,
-		settings.DebugKey,
-		os.Getenv("DEBUG") == "true",
-	)
+	debug := os.Getenv("DEBUG") == "true"
 
 	db, err := InitDatabase()
 	if err != nil {
@@ -95,14 +91,21 @@ func main() {
 		)
 		cronSpec = defaultCronSpec
 	}
+	var mailer mail.Mailer
+	mailConfig := mailCfg.NewFromEnv()
+	if debug {
+		mailer = backends.NewConsoleMailer(mailConfig)
+	} else {
+		mailer = backends.NewGomailMailer(mailConfig)
+	}
 	notifier := notifications.NewUsersNotifier(
-		&mail.Client{Config: mailCfg.NewFromEnv()},
+		mail.NewClient(mailer),
 		apiClient.RateService,
 		userRepo,
 		&message.PlainRateMessage{},
 	)
 	StartCron(cronSpec, func() {
-		ctx, cancel := context.WithTimeout(ctx, server.RateTimeout)
+		ctx, cancel := context.WithTimeout(context.Background(), server.RateTimeout)
 		defer cancel()
 		notifier.Notify(ctx)
 	})

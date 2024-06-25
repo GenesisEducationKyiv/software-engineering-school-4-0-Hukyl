@@ -18,9 +18,3 @@ func InitSettings(path ...string) error {
 	}
 	return nil
 }
-
-type ContextKey int
-
-const (
-	DebugKey ContextKey = iota
-)

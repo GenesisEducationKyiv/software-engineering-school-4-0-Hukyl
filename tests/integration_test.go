@@ -4,13 +4,14 @@ package tests_test
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/Hukyl/genesis-kma-school-entry/database"
 	"github.com/Hukyl/genesis-kma-school-entry/mail"
+	"github.com/Hukyl/genesis-kma-school-entry/mail/backends"
 	mailCfg "github.com/Hukyl/genesis-kma-school-entry/mail/config"
 	"github.com/Hukyl/genesis-kma-school-entry/models"
 	"github.com/Hukyl/genesis-kma-school-entry/rate/fetchers"
@@ -77,6 +78,7 @@ func TestRateServiceFetchRate_Success(t *testing.T) {
 
 func TestUserNotificationsRecipients(t *testing.T) {
 	// Arrange
+	fromEmail := "example@gmail.com"
 	ctx := context.Background()
 	db := database.SetUpTest(t, &models.User{}, &models.Rate{})
 	repo := models.NewUserRepository(db)
@@ -86,18 +88,18 @@ func TestUserNotificationsRecipients(t *testing.T) {
 		fetchers.NewNBURateFetcher(),
 	)
 	smtpmockServer := mail.MockSMTPServer(t)
-	emailClient := mail.Client{
-		Config: mailCfg.Config{
-			FromEmail:    "example@gmail.com",
+	emailClient := mail.NewClient(backends.NewGomailMailer(
+		mailCfg.Config{
+			FromEmail:    fromEmail,
 			SMTPHost:     mail.Localhost,
-			SMTPPort:     fmt.Sprint(smtpmockServer.PortNumber()),
+			SMTPPort:     strconv.Itoa(smtpmockServer.PortNumber()),
 			SMTPUser:     "user",
 			SMTPPassword: "password",
 		},
-	}
+	))
 	messageFormatter := message.PlainRateMessage{}
 	notifier := notifications.NewUsersNotifier(
-		&emailClient, rateService, repo, &messageFormatter,
+		emailClient, rateService, repo, &messageFormatter,
 	)
 	users := []models.User{
 		{Email: "test1@gmail.com"},
@@ -118,7 +120,7 @@ func TestUserNotificationsRecipients(t *testing.T) {
 		assert.Len(t, msg.RcpttoRequestResponse(), 1)
 		rcpt := msg.RcpttoRequestResponse()[0][0]
 		assert.Contains(t, rcpt, user.Email)
-		assert.Contains(t, msg.MailfromRequest(), emailClient.Config.FromEmail)
+		assert.Contains(t, msg.MailfromRequest(), fromEmail)
 	}
 }
 
@@ -141,7 +143,7 @@ func TestSubscribeUser_Success(t *testing.T) {
 	// Assert
 	assert.Equal(t, http.StatusOK, rr.Code)
 	exists, err := repo.Exists(user)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.True(t, exists)
 }
 
@@ -150,7 +152,7 @@ func TestSubscribeUser_Conflict(t *testing.T) {
 	// Arrange
 	repo := models.NewUserRepository(database.SetUpTest(t, &models.User{}))
 	err := repo.Create(user)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	engine := server.NewEngine(server.Client{
 		Config:   serverCfg.Config{Port: "8080"},
 		UserRepo: repo,
@@ -165,7 +167,7 @@ func TestSubscribeUser_Conflict(t *testing.T) {
 	// Assert
 	assert.Equal(t, http.StatusConflict, rr.Code)
 	exists, err := repo.Exists(user)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.True(t, exists)
 }
 
