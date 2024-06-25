@@ -78,7 +78,7 @@ func (n *NBURateFetcher) fetchRate(ctx context.Context, ccFrom, ccTo string) (ra
 func (n *NBURateFetcher) FetchRate(ctx context.Context, ccFrom, ccTo string) (rate.Rate, error) {
 	result, err := n.fetchRate(ctx, ccFrom, ccTo)
 	slog.Info(
-		"Fetched rate",
+		"fetched rate",
 		slog.String("fetcher", fmt.Sprint(n)), slog.Any("rate", result), slog.Any("error", err),
 	)
 	if err == nil {
