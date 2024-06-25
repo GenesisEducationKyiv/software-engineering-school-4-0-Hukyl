@@ -59,7 +59,7 @@ func TestSendEmail_Success(t *testing.T) {
 	ctx := context.Background()
 	gm := backends.NewGomailMailer(config.Config{
 		FromEmail:    "example@gmail.com",
-		SMTPHost:     "smtp.gmail.com",
+		SMTPHost:     mail.Localhost,
 		SMTPPort:     strconv.Itoa(smtpServer.PortNumber()),
 		SMTPUser:     "user",
 		SMTPPassword: "password",
