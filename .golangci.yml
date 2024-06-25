@@ -31,7 +31,6 @@ linters:
     - whitespace
 
 
-
 linters-settings:
   gocognit:
     min-complexity: 15
@@ -42,6 +41,14 @@ linters-settings:
 issues:
   fix: true
   whole-files: true
+
+  exclude-rules:
+    - path: "_test\\.go$"
+      linters:
+        - funlen
+        - lll
+        - gocognit
+        - cyclop
 
 
 severity:

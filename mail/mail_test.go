@@ -91,7 +91,7 @@ func TestClientSMTPEmail(t *testing.T) {
 	assert.Len(t, smtpServer.Messages(), 1)
 }
 
-func TestClientSMTPEmailVariousParameters(t *testing.T) { // nolint: funlen
+func TestClientSMTPEmailVariousParameters(t *testing.T) {
 	testCases := []struct {
 		name        string
 		fromEmail   string
