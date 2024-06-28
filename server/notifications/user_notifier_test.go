@@ -2,52 +2,105 @@ package notifications_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/Hukyl/genesis-kma-school-entry/models"
-	"github.com/Hukyl/genesis-kma-school-entry/rate"
 	"github.com/Hukyl/genesis-kma-school-entry/server/notifications"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 type mockRateFetcher struct {
-	callCount int
+	mock.Mock
 }
 
-func (m *mockRateFetcher) FetchRate(from, to string) (rate.Rate, error) {
-	m.callCount++
-	return rate.Rate{CurrencyFrom: from, CurrencyTo: to, Rate: 27.5}, nil
+func (m *mockRateFetcher) FetchRate(ctx context.Context, from, to string) (*models.Rate, error) {
+	args := m.Called(ctx, from, to)
+	return args.Get(0).(*models.Rate), args.Error(1)
 }
 
 type mockUserRepository struct {
-	callCount int
+	mock.Mock
 }
 
 func (m *mockUserRepository) FindAll() ([]models.User, error) {
-	m.callCount++
-	return []models.User{
-		{Email: "example@gmail.com"},
-		{Email: "example2@gmail.com"},
-	}, nil
+	args := m.Called()
+	return args.Get(0).([]models.User), args.Error(1)
+}
+
+type mockMessageFormatter struct {
+	mock.Mock
+}
+
+func (m *mockMessageFormatter) SetRate(rate *models.Rate) {
+	m.Called(rate)
+}
+
+func (m *mockMessageFormatter) Subject() string {
+	args := m.Called()
+	return args.String(0)
+}
+
+func (m *mockMessageFormatter) String() string {
+	args := m.Called()
+	return args.String(0)
 }
 
 type mockEmailClient struct {
-	callCount int
+	mock.Mock
 }
 
-func (m *mockEmailClient) SendEmail(_ context.Context, _, _ string) error {
-	m.callCount++
-	return nil
+func (m *mockEmailClient) SendEmail(ctx context.Context, email, subject, message string) error {
+	args := m.Called(ctx, email, subject, message)
+	return args.Error(0)
 }
 
-func TestNotify(t *testing.T) {
+func TestUserNotify(t *testing.T) {
+	// Arrange
 	ctx := context.Background()
-	rateFetcher := &mockRateFetcher{}
-	userRepository := &mockUserRepository{}
-	emailClient := &mockEmailClient{}
-	notifier := notifications.NewUsersNotifier(emailClient, rateFetcher, userRepository)
+	ccFrom := "USD"
+	ccTo := "UAH"
+
+	rateService := new(mockRateFetcher)
+	rateService.On("FetchRate", mock.Anything, ccFrom, ccTo).Return(&models.Rate{
+		Rate:         27.5,
+		CurrencyFrom: ccFrom,
+		CurrencyTo:   ccTo,
+	}, nil)
+
+	userRepository := new(mockUserRepository)
+	userRepository.On("FindAll").Return([]models.User{
+		{Email: "example@gmail.com"},
+		{Email: "example2@gmail.com"},
+	}, nil)
+
+	emailClient := new(mockEmailClient)
+	emailClient.On(
+		"SendEmail", ctx, "example@gmail.com", mock.Anything, mock.Anything,
+	).Return(nil).Once()
+	emailClient.On(
+		"SendEmail", ctx, "example2@gmail.com", mock.Anything, mock.Anything,
+	).Return(nil).Once()
+
+	messageFormatter := new(mockMessageFormatter)
+	messageFormatter.On("SetRate", &models.Rate{
+		Rate:         27.5,
+		CurrencyFrom: ccFrom,
+		CurrencyTo:   ccTo,
+	}).Return()
+	messageFormatter.On("Subject").Return(fmt.Sprintf("%s-%s exchange rate", ccFrom, ccTo))
+	messageFormatter.On("String").Return(fmt.Sprintf("1 %s = 27.5 %s", ccFrom, ccTo))
+
+	notifier := notifications.NewUsersNotifier(
+		emailClient,
+		rateService,
+		userRepository,
+		messageFormatter,
+	)
+	// Act
 	notifier.Notify(ctx)
-	assert.Equal(t, 1, rateFetcher.callCount)
-	assert.Equal(t, 1, userRepository.callCount)
-	assert.Equal(t, 2, emailClient.callCount)
+	// Assert
+	rateService.AssertExpectations(t)
+	userRepository.AssertExpectations(t)
+	emailClient.AssertExpectations(t)
 }

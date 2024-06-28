@@ -1,17 +1,21 @@
 package server
 
 import (
+	"context"
+	"time"
+
 	"github.com/Hukyl/genesis-kma-school-entry/models"
-	"github.com/Hukyl/genesis-kma-school-entry/rate"
 	"github.com/Hukyl/genesis-kma-school-entry/server/config"
 )
 
-type RateFetcher interface {
-	FetchRate(ccFrom, ccTo string) (rate.Rate, error)
+const RateTimeout = 3 * time.Second
+
+type RateService interface {
+	FetchRate(ctx context.Context, from, to string) (*models.Rate, error)
 }
 
 type Client struct {
 	Config      config.Config
-	RateFetcher RateFetcher
-	UserRepo    models.UserRepository
+	RateService RateService
+	UserRepo    UserRepository
 }

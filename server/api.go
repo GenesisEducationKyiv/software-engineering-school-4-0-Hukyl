@@ -1,10 +1,19 @@
 package server
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/Hukyl/genesis-kma-school-entry/models"
 	"github.com/gin-gonic/gin"
+)
+
+const (
+	RatePath      = "/rate"
+	SubscribePath = "/subscribe"
+	ccFrom        = "USD"
+	ccTo          = "UAH"
 )
 
 type UserRepository interface {
@@ -14,9 +23,11 @@ type UserRepository interface {
 
 // NewGetRateHandler is a handler that fetches the exchange rate between USD and UAH
 // from a RateFetcher interface and returns it as a JSON response.
-func NewGetRateHandler(rateFetcher RateFetcher) func(*gin.Context) {
+func NewGetRateHandler(rateService RateService, timeout time.Duration) func(*gin.Context) {
 	return func(c *gin.Context) {
-		rate, err := rateFetcher.FetchRate("USD", "UAH")
+		ctx, cancel := context.WithTimeout(c.Request.Context(), timeout)
+		defer cancel()
+		rate, err := rateService.FetchRate(ctx, ccFrom, ccTo)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, err.Error())
 			return
@@ -25,7 +36,7 @@ func NewGetRateHandler(rateFetcher RateFetcher) func(*gin.Context) {
 	}
 }
 
-// SubscribeUser is a handler that subscribes a user by email.
+// NewSubscribeUserHandler is a handler that subscribes a user by email.
 // The email is passed as a POST parameter and is required.
 // If the user is already subscribed, returns a 409 Conflict status code.
 // If the subscription is successful, returns a 200 OK status code.
@@ -58,7 +69,7 @@ func NewSubscribeUserHandler(repo UserRepository) func(*gin.Context) {
 func NewEngine(client Client) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
-	r.GET("/rate", NewGetRateHandler(client.RateFetcher))
-	r.POST("/subscribe", NewSubscribeUserHandler(&client.UserRepo))
+	r.GET(RatePath, NewGetRateHandler(client.RateService, RateTimeout))
+	r.POST(SubscribePath, NewSubscribeUserHandler(client.UserRepo))
 	return r
 }

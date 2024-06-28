@@ -69,7 +69,7 @@ func (d *DB) Init() error {
 	// Initialize first connection with the database
 	conn := d.Connection()
 	if conn == nil {
-		return fmt.Errorf("failed to connect to database")
+		return errors.New("failed to connect to database")
 	}
 	return nil
 }
@@ -77,7 +77,7 @@ func (d *DB) Init() error {
 func (d *DB) Migrate(models ...any) error {
 	conn := d.Connection()
 	if conn == nil {
-		return fmt.Errorf("failed to connect to database")
+		return errors.New("failed to connect to database")
 	}
 	for _, m := range models {
 		err := conn.AutoMigrate(m)
@@ -87,9 +87,26 @@ func (d *DB) Migrate(models ...any) error {
 				slog.Any("error", err),
 				slog.Any("model", m),
 			)
-			return fmt.Errorf("failed to migrate User: %w", err)
+			return fmt.Errorf("failed to migrate %s: %w", m, err)
 		}
 	}
+	return nil
+}
+
+func (d *DB) Close() error {
+	if d.conn == nil {
+		return nil
+	}
+	sqlDB, err := d.conn.DB()
+	if err != nil {
+		slog.Error("closing database connection", slog.Any("error", err))
+		return fmt.Errorf("get db connection error: %w", err)
+	}
+	if err = sqlDB.Close(); err != nil {
+		slog.Error("closing database connection", slog.Any("error", err))
+		return fmt.Errorf("failed to close connection to database: %w", err)
+	}
+	slog.Info("closing connection to db")
 	return nil
 }
 

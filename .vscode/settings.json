@@ -6,6 +6,13 @@
         "gorm",
         "gonic",
         "gomail",
+        "smtpmock",
+        "ericchiang",
+        "stretchr",
+        "valcode",
+        "tbody",
+        "Rcptto",
+        "nolint",
     ],
     "cSpell.ignorePaths": [
         ".vscode",
@@ -13,5 +20,13 @@
     ],
     "cSpell.words": [
         "Dialector",
+    ],
+    "go.buildFlags": [
+        "-tags",
+        "integration",
+    ],
+    "go.lintFlags": [
+        "--build-tags",
+        "integration",
     ]
 }

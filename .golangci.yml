@@ -26,10 +26,10 @@ linters:
     - sloglint
     - staticcheck
     - tagalign
+    - testifylint
     - thelper
     - unused
     - whitespace
-
 
 
 linters-settings:
@@ -42,6 +42,14 @@ linters-settings:
 issues:
   fix: true
   whole-files: true
+
+  exclude-rules:
+    - path: "_test\\.go$"
+      linters:
+        - funlen
+        - lll
+        - gocognit
+        - cyclop
 
 
 severity:
