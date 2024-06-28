@@ -100,9 +100,9 @@ func (d *DB) Close() error {
 	sqlDB, err := d.conn.DB()
 	if err != nil {
 		slog.Error("closing database connection", slog.Any("error", err))
+		return fmt.Errorf("get db connection error: %w", err)
 	}
-	err = sqlDB.Close()
-	if err != nil {
+	if err = sqlDB.Close(); err != nil {
 		slog.Error("closing database connection", slog.Any("error", err))
 		return fmt.Errorf("failed to close connection to database: %w", err)
 	}
