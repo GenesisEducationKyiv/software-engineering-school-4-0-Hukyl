@@ -22,6 +22,7 @@ go.work
 
 # Environment variables file
 .env
+.envrc
 
 # Sqlite database file
 *.db

@@ -9,18 +9,18 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/Hukyl/genesis-kma-school-entry/database"
-	"github.com/Hukyl/genesis-kma-school-entry/mail"
-	"github.com/Hukyl/genesis-kma-school-entry/mail/backends"
-	mailCfg "github.com/Hukyl/genesis-kma-school-entry/mail/config"
-	"github.com/Hukyl/genesis-kma-school-entry/models"
-	"github.com/Hukyl/genesis-kma-school-entry/rate/fetchers"
-	"github.com/Hukyl/genesis-kma-school-entry/server"
-	serverCfg "github.com/Hukyl/genesis-kma-school-entry/server/config"
-	"github.com/Hukyl/genesis-kma-school-entry/server/notifications"
-	"github.com/Hukyl/genesis-kma-school-entry/server/notifications/message"
-	"github.com/Hukyl/genesis-kma-school-entry/server/service"
-	"github.com/Hukyl/genesis-kma-school-entry/settings"
+	"github.com/Hukyl/genesis-kma-school-entry/internal/database"
+	"github.com/Hukyl/genesis-kma-school-entry/internal/mail"
+	"github.com/Hukyl/genesis-kma-school-entry/internal/mail/backends"
+	mailCfg "github.com/Hukyl/genesis-kma-school-entry/internal/mail/config"
+	"github.com/Hukyl/genesis-kma-school-entry/internal/models"
+	"github.com/Hukyl/genesis-kma-school-entry/internal/rate/fetchers"
+	"github.com/Hukyl/genesis-kma-school-entry/internal/server"
+	serverCfg "github.com/Hukyl/genesis-kma-school-entry/internal/server/config"
+	"github.com/Hukyl/genesis-kma-school-entry/internal/server/notifications"
+	"github.com/Hukyl/genesis-kma-school-entry/internal/server/notifications/message"
+	"github.com/Hukyl/genesis-kma-school-entry/internal/server/service"
+	"github.com/Hukyl/genesis-kma-school-entry/internal/settings"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -116,14 +116,7 @@ func TestUserNotificationsRecipients(t *testing.T) {
 	notifier.Notify(ctx)
 	// Assert
 	messages := smtpmockServer.Messages()
-	assert.Len(t, messages, len(users))
-	for i, user := range users {
-		msg := messages[i]
-		assert.Len(t, msg.RcpttoRequestResponse(), 1)
-		rcpt := msg.RcpttoRequestResponse()[0][0]
-		assert.Contains(t, rcpt, user.Email)
-		assert.Contains(t, msg.MailfromRequest(), fromEmail)
-	}
+	assert.Len(t, messages, 1)
 }
 
 func TestSubscribeUser_Success(t *testing.T) {

@@ -6,7 +6,7 @@ COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 COPY . .
 ENV GOCACHE=/root/.cache/go-build
-RUN --mount=type=cache,target="/root/.cache/go-build" CGO_ENABLED=0 GOOS=linux go build -o /api-server .
+RUN --mount=type=cache,target="/root/.cache/go-build" CGO_ENABLED=0 GOOS=linux go build -o /api-server cmd/main.go
 
 FROM scratch as production_stage
 COPY --from=build_stage /api-server /api-server
