@@ -6,7 +6,7 @@ import (
 )
 
 type Mailer interface {
-	SendEmail(ctx context.Context, email, subject, message string) error
+	SendEmail(ctx context.Context, emails []string, subject, message string) error
 }
 
 type Client struct {
@@ -17,8 +17,8 @@ func NewClient(backend Mailer) *Client {
 	return &Client{backend: backend}
 }
 
-func (mc *Client) SendEmail(ctx context.Context, email, subject, message string) error {
-	err := mc.backend.SendEmail(ctx, email, subject, message)
+func (mc *Client) SendEmail(ctx context.Context, emails []string, subject, message string) error {
+	err := mc.backend.SendEmail(ctx, emails, subject, message)
 	if err != nil {
 		return fmt.Errorf("email client: %w", err)
 	}

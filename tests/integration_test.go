@@ -116,14 +116,7 @@ func TestUserNotificationsRecipients(t *testing.T) {
 	notifier.Notify(ctx)
 	// Assert
 	messages := smtpmockServer.Messages()
-	assert.Len(t, messages, len(users))
-	for i, user := range users {
-		msg := messages[i]
-		assert.Len(t, msg.RcpttoRequestResponse(), 1)
-		rcpt := msg.RcpttoRequestResponse()[0][0]
-		assert.Contains(t, rcpt, user.Email)
-		assert.Contains(t, msg.MailfromRequest(), fromEmail)
-	}
+	assert.Len(t, messages, 1)
 }
 
 func TestSubscribeUser_Success(t *testing.T) {

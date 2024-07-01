@@ -9,7 +9,7 @@ import (
 )
 
 type EmailClient interface {
-	SendEmail(ctx context.Context, email, subject, message string) error
+	SendEmail(ctx context.Context, emails []string, subject, message string) error
 }
 
 type Repository interface {
@@ -61,20 +61,22 @@ func (n *UsersNotifier) Notify(ctx context.Context) {
 		slog.Any("userCount", len(users)),
 	)
 
-	n.messageFormatter.SetRate(rate)
+	userEmails := make([]string, 0, len(users))
 	for _, user := range users {
-		err := n.mailClient.SendEmail(
-			ctx,
-			user.Email,
-			n.messageFormatter.Subject(),
-			n.messageFormatter.String(),
+		userEmails = append(userEmails, user.Email)
+	}
+
+	n.messageFormatter.SetRate(rate)
+	err = n.mailClient.SendEmail(
+		ctx,
+		userEmails,
+		n.messageFormatter.Subject(),
+		n.messageFormatter.String(),
+	)
+	if err != nil {
+		slog.Error(
+			"failed sending email",
+			slog.Any("error", err),
 		)
-		if err != nil {
-			slog.Error(
-				"failed sending email",
-				slog.Any("error", err),
-				slog.Any("userEmail", user.Email),
-			)
-		}
 	}
 }

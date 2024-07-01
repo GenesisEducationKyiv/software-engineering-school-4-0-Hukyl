@@ -50,8 +50,8 @@ type mockEmailClient struct {
 	mock.Mock
 }
 
-func (m *mockEmailClient) SendEmail(ctx context.Context, email, subject, message string) error {
-	args := m.Called(ctx, email, subject, message)
+func (m *mockEmailClient) SendEmail(ctx context.Context, emails []string, subject, message string) error {
+	args := m.Called(ctx, emails, subject, message)
 	return args.Error(0)
 }
 
@@ -76,10 +76,7 @@ func TestUserNotify(t *testing.T) {
 
 	emailClient := new(mockEmailClient)
 	emailClient.On(
-		"SendEmail", ctx, "example@gmail.com", mock.Anything, mock.Anything,
-	).Return(nil).Once()
-	emailClient.On(
-		"SendEmail", ctx, "example2@gmail.com", mock.Anything, mock.Anything,
+		"SendEmail", ctx, []string{"example@gmail.com", "example2@gmail.com"}, mock.Anything, mock.Anything,
 	).Return(nil).Once()
 
 	messageFormatter := new(mockMessageFormatter)
