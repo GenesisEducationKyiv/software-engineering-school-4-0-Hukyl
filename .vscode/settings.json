@@ -13,6 +13,8 @@
         "tbody",
         "Rcptto",
         "nolint",
+        "amqp",
+        "soft",
     ],
     "cSpell.ignorePaths": [
         ".vscode",
@@ -20,6 +22,7 @@
     ],
     "cSpell.words": [
         "Dialector",
+        "rabbitmq",
     ],
     "go.buildFlags": [
         "-tags",

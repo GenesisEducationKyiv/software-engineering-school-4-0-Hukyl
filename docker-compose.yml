@@ -14,15 +14,27 @@ services:
     volumes:
       - postgres-db:/var/lib/postgresql/data
 
-  api-service:
-    container_name: api-service
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:latest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: rabbitmq
+      RABBITMQ_DEFAULT_PASS: rabbitmq
+
+  api:
+    container_name: api
     build:
       context: .
       dockerfile: Dockerfile
+      target: api-stage
     ports:
       - 8080:8080
     volumes:
-      - .:/go/src/github.com/Hukyl/genesis-kma-school-entry
+      - .:/go/src/github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl
     depends_on:
       - db
     env_file:
@@ -31,6 +43,22 @@ services:
     environment:
       - DATABASE_SERVICE=postgres
       - DATABASE_DSN=host=db user=postgres password=postgres dbname=genesis_kma_se_school port=5432 sslmode=disable TimeZone=UTC
+  
+  email:
+    container_name: email
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: email-stage
+    ports:
+      - 8081:8081
+    volumes:
+      - .:/go/src/github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl
+    depends_on:
+      - rabbitmq
+    env_file:
+      - ./.env
+    restart: always
 
 
 volumes:
