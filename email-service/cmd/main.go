@@ -6,8 +6,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/pkg/settings"
-
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/broker"
 	brokerCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/broker/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/mail"
@@ -16,11 +14,6 @@ import (
 )
 
 func main() {
-	err := settings.InitSettings()
-	if err != nil {
-		slog.Error("initializing settings", slog.Any("error", err))
-	}
-
 	debug := os.Getenv("DEBUG") == "true"
 	var mailer mail.Mailer
 	mailConfig := mailCfg.NewFromEnv()
