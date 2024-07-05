@@ -133,6 +133,7 @@ func TestNewFail(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			db, err := database.New(tc.config)
 			if tc.expectError {
 				require.Error(t, err)

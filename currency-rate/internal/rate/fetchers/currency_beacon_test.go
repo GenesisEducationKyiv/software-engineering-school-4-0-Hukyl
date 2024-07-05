@@ -33,6 +33,7 @@ func TestFetchRate(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			_, err := b.FetchRate(context.Background(), tc.from, tc.to)
 			if tc.expectedError {
 				assert.Error(t, err)

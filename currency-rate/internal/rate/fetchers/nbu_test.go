@@ -34,6 +34,7 @@ func TestFetchRate_Failure(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			_, err := b.FetchRate(context.Background(), tc.from, tc.to)
 			if tc.expectedError {
 				assert.Error(t, err)
@@ -45,6 +46,7 @@ func TestFetchRate_Failure(t *testing.T) {
 }
 
 func TestNBUFetchRate(t *testing.T) {
+	t.Parallel()
 	nbu := fetchers.NewNBURateFetcher()
 	rate, err := nbu.FetchRate(context.Background(), "USD", "UAH")
 	require.NoError(t, err)
