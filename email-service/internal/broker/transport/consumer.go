@@ -1,13 +1,12 @@
-package broker
+package transport
 
 import (
 	"fmt"
 	"log/slog"
 	"sync"
 
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/broker/transport/config"
 	amqp "github.com/rabbitmq/amqp091-go"
-
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/broker/config"
 )
 
 func logAndWrap(msg string, err error) error {
@@ -15,7 +14,7 @@ func logAndWrap(msg string, err error) error {
 	return fmt.Errorf("%s: %w", msg, err)
 }
 
-var listenerAccessLock sync.Mutex = sync.Mutex{}
+var listenerAccess = sync.Mutex{}
 
 type Listener func([]byte) error
 
@@ -28,33 +27,48 @@ type Consumer struct {
 }
 
 func (c *Consumer) Subscribe(f Listener) {
-	listenerAccessLock.Lock()
-	defer listenerAccessLock.Unlock()
+	slog.Info(
+		"adding subscriber",
+		slog.Any("listener", f),
+		slog.Any("totalListeners", len(c.listeners)+1),
+	)
+	listenerAccess.Lock()
+	defer listenerAccess.Unlock()
 	c.listeners = append(c.listeners, f)
 }
 
-func (c *Consumer) Listen(stop <-chan struct{}) {
-	deliverMessage := func(msg amqp.Delivery) {
-		listenerAccessLock.Lock()
-		defer listenerAccessLock.Unlock()
-		for _, listener := range c.listeners {
-			listener(msg.Body)
+func (c *Consumer) deliverMessage(msg amqp.Delivery) {
+	listenerAccess.Lock()
+	defer listenerAccess.Unlock()
+	for _, listener := range c.listeners {
+		err := listener(msg.Body)
+		if err != nil {
+			slog.Error(
+				"error delivering message",
+				slog.Any("error", err),
+				slog.Any("listener", listener),
+			)
 		}
 	}
+}
 
+func (c *Consumer) Listen(stop <-chan struct{}) {
 	for {
 		select {
 		case <-stop:
 			return
-		default:
-			for msg := range c.messages {
-				deliverMessage(msg)
+		case msg, ok := <-c.messages:
+			if !ok {
+				return
 			}
+			slog.Info("received message")
+			c.deliverMessage(msg)
 		}
 	}
 }
 
 func (c *Consumer) Close() error {
+	slog.Info("closing consumer")
 	if err := c.channel.Close(); err != nil {
 		return logAndWrap("closing channel", err)
 	}
@@ -65,6 +79,7 @@ func (c *Consumer) Close() error {
 }
 
 func NewConsumer(config config.Config) (*Consumer, error) {
+	slog.Info("creating consumer", slog.Any("config", config))
 	conn, err := amqp.Dial(config.BrokerURI)
 	if err != nil {
 		return nil, logAndWrap("dialing amqp", err)

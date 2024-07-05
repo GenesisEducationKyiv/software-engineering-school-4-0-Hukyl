@@ -8,7 +8,7 @@ import (
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/database"
 	dbCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/database/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/mail"
-	mailCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/mail/config"
+	transportCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/mail/transport/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/models"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/rate/fetchers"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server"
@@ -87,10 +87,11 @@ func main() {
 		cronSpec = defaultCronSpec
 	}
 
-	mailerFacade, err := mail.NewMailerFacade(mailCfg.NewFromEnv())
+	mailerFacade, err := mail.NewMailerFacade(transportCfg.NewFromEnv())
 	if err != nil {
 		slog.Error("failed to initialize mailer facade", slog.Any("error", err))
 	}
+	defer mailerFacade.Close()
 	notifier := notifications.NewUsersNotifier(
 		mailerFacade,
 		apiClient.RateService,

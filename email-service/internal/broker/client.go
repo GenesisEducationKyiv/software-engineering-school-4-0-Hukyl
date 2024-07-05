@@ -6,10 +6,13 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/broker/config"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/broker/transport"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/broker/transport/config"
 )
 
 var mailTimeout = 5 * time.Second
+
+const eventType = "SendEmail"
 
 type MailData struct {
 	Emails  []string `json:"emails"`
@@ -17,32 +20,42 @@ type MailData struct {
 	Body    string   `json:"body"`
 }
 
-type MailListeners func(ctx context.Context, emails []string, subject, body string) error
+type Command struct {
+	ID        string   `json:"commandID"`
+	Type      string   `json:"commandType"`
+	Timestamp string   `json:"timestamp"`
+	Data      MailData `json:"data"`
+}
+
+type MailSender func(ctx context.Context, emails []string, subject, body string) error
 
 type Client struct {
-	consumer   *Consumer
+	consumer   *transport.Consumer
 	stopSignal chan struct{}
 }
 
-func (c *Client) Subscribe(f MailListeners) error {
-	c.consumer.listeners = append(c.consumer.listeners, func(b []byte) error {
+func (c *Client) Subscribe(f MailSender) error {
+	c.consumer.Subscribe(func(b []byte) error {
 		ctx, cancel := context.WithTimeout(context.Background(), mailTimeout)
 		defer cancel()
-		mailData, err := c.Unmarshal(b)
+		command, err := c.unmarshal(b)
 		if err != nil {
 			return err
 		}
-		return f(ctx, mailData.Emails, mailData.Subject, mailData.Body)
+		if command.Type != eventType {
+			return nil
+		}
+		return f(ctx, command.Data.Emails, command.Data.Subject, command.Data.Body)
 	})
 	return nil
 }
 
-func (c *Client) Unmarshal(data []byte) (*MailData, error) {
-	mailData := &MailData{}
-	if err := json.Unmarshal(data, mailData); err != nil {
+func (c *Client) unmarshal(data []byte) (*Command, error) {
+	command := &Command{}
+	if err := json.Unmarshal(data, command); err != nil {
 		return nil, err
 	}
-	return mailData, nil
+	return command, nil
 }
 
 func (c *Client) Close() error {
@@ -51,7 +64,7 @@ func (c *Client) Close() error {
 }
 
 func NewClient(config config.Config) (*Client, error) {
-	consumer, err := NewConsumer(config)
+	consumer, err := transport.NewConsumer(config)
 	if err != nil {
 		slog.Error("creating consumer", slog.Any("error", err))
 		return nil, err

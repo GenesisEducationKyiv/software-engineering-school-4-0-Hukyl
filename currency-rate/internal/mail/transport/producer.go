@@ -1,11 +1,11 @@
-package mail
+package transport
 
 import (
 	"context"
 	"fmt"
 	"log/slog"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/mail/config"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/mail/transport/config"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -22,10 +22,10 @@ type Producer struct {
 
 func (p *Producer) Close() error {
 	if err := p.channel.Close(); err != nil {
-		return fmt.Errorf("closing channel: %w", err)
+		return logAndWrap("closing channel", err)
 	}
 	if err := p.conn.Close(); err != nil {
-		return fmt.Errorf("closing connection: %w", err)
+		return logAndWrap("closing connection", err)
 	}
 	return nil
 }
@@ -40,7 +40,11 @@ func (p *Producer) Produce(ctx context.Context, msg []byte) error {
 			ContentType: "text/plain",
 			Body:        []byte(msg),
 		})
-	slog.Error("publishing message", slog.Any("queueName", p.config.QueueName), slog.Any("error", err))
+	slog.Info(
+		"publishing message",
+		slog.Any("queueName", p.config.QueueName),
+		slog.Any("error", err),
+	)
 	if err != nil {
 		return fmt.Errorf("publishing message: %w", err)
 	}
@@ -48,6 +52,7 @@ func (p *Producer) Produce(ctx context.Context, msg []byte) error {
 }
 
 func NewProducer(config config.Config) (*Producer, error) {
+	slog.Info("creating producer", slog.Any("config", config))
 	conn, err := amqp.Dial(config.BrokerURI)
 	if err != nil {
 		return nil, logAndWrap("dialing broker", err)
