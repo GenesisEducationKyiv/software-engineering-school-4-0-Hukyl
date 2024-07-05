@@ -26,8 +26,8 @@ services:
       RABBITMQ_DEFAULT_USER: rabbitmq
       RABBITMQ_DEFAULT_PASS: rabbitmq
 
-  api:
-    container_name: api
+  api-service:
+    container_name: api-service
     build:
       context: ./currency-rate
       dockerfile: Dockerfile
@@ -45,8 +45,8 @@ services:
       - DATABASE_SERVICE=postgres
       - DATABASE_DSN=host=postgres user=postgres password=postgres dbname=genesis_kma_se_school port=5432 sslmode=disable TimeZone=UTC
   
-  email:
-    container_name: email
+  email-service:
+    container_name: email-service
     build:
       context: ./email-service/
       dockerfile: Dockerfile
