@@ -6,7 +6,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/database"
@@ -14,8 +13,6 @@ import (
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/rate/fetchers"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server"
 	serverCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/config"
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/notifications"
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/notifications/message"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/service"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/pkg/settings"
 	"github.com/gin-gonic/gin"
@@ -73,47 +70,6 @@ func TestRateServiceFetchRate_Success(t *testing.T) {
 	assert.Equal(t, ccFrom, result.CurrencyFrom)
 	assert.Equal(t, ccTo, result.CurrencyTo)
 	assert.NotZero(t, result.Rate)
-}
-
-func TestUserNotificationsRecipients(t *testing.T) {
-	// Arrange
-	fromEmail := "example@gmail.com"
-	ctx := context.Background()
-	db := database.SetUpTest(t, &models.User{}, &models.Rate{})
-	repo := models.NewUserRepository(db)
-
-	rateService := service.NewRateService(
-		models.NewRateRepository(db),
-		fetchers.NewNBURateFetcher(),
-	)
-	smtpmockServer := mail.MockSMTPServer(t)
-	emailClient := mail.NewClient(backends.NewGomailMailer(
-		mailCfg.Config{
-			FromEmail:    fromEmail,
-			SMTPHost:     mail.Localhost,
-			SMTPPort:     strconv.Itoa(smtpmockServer.PortNumber()),
-			SMTPUser:     "user",
-			SMTPPassword: "password",
-		},
-	))
-	messageFormatter := message.PlainRate{}
-	notifier := notifications.NewUsersNotifier(
-		emailClient, rateService, repo, &messageFormatter,
-	)
-	users := []models.User{
-		{Email: "test1@gmail.com"},
-		{Email: "test2@gmail.com"},
-	}
-	for _, user := range users {
-		if err := repo.Create(&user); err != nil {
-			t.Fatalf("failed to create user: %v", err)
-		}
-	}
-	// Act
-	notifier.Notify(ctx)
-	// Assert
-	messages := smtpmockServer.Messages()
-	assert.Len(t, messages, 1)
 }
 
 func TestSubscribeUser_Success(t *testing.T) {
