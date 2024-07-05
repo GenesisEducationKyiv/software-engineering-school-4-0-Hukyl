@@ -31,5 +31,6 @@
     "go.lintFlags": [
         "--build-tags",
         "integration",
-    ]
+    ],
+    "go.lintOnSave": "package",
 }
