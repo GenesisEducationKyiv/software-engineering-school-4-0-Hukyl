@@ -1,8 +1,8 @@
 version: '3'
 
 services:
-  db:
-    container_name: db
+  postgres:
+    container_name: postgres
     image: postgres
     ports:
       - "5432:5432"
@@ -16,40 +16,40 @@ services:
 
   rabbitmq:
     container_name: rabbitmq
-    image: rabbitmq:latest
+    image: rabbitmq:3.13.4-management
     ports:
       - "5672:5672"
       - "15672:15672"
     restart: always
     environment:
+      AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
       RABBITMQ_DEFAULT_USER: rabbitmq
       RABBITMQ_DEFAULT_PASS: rabbitmq
 
   api:
     container_name: api
     build:
-      context: .
+      context: ./currency-rate
       dockerfile: Dockerfile
-      target: api-stage
     ports:
       - 8080:8080
     volumes:
       - .:/go/src/github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl
     depends_on:
-      - db
+      - postgres
+      - rabbitmq
     env_file:
       - ./.env
     restart: always
     environment:
       - DATABASE_SERVICE=postgres
-      - DATABASE_DSN=host=db user=postgres password=postgres dbname=genesis_kma_se_school port=5432 sslmode=disable TimeZone=UTC
+      - DATABASE_DSN=host=postgres user=postgres password=postgres dbname=genesis_kma_se_school port=5432 sslmode=disable TimeZone=UTC
   
   email:
     container_name: email
     build:
-      context: .
+      context: ./email-service/
       dockerfile: Dockerfile
-      target: email-stage
     ports:
       - 8081:8081
     volumes:
@@ -63,4 +63,3 @@ services:
 
 volumes:
   postgres-db:
-      
