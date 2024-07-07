@@ -37,7 +37,7 @@ func (p *Producer) Produce(ctx context.Context, msg []byte) error {
 		false,              // mandatory
 		false,              // immediate
 		amqp.Publishing{
-			ContentType: "text/plain",
+			ContentType: "application/json",
 			Body:        []byte(msg),
 		})
 	slog.Info(
