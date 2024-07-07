@@ -5,8 +5,6 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/database"
-	dbCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/database/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/mail"
 	transportCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/mail/transport/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/models"
@@ -16,23 +14,13 @@ import (
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/notifications"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/notifications/message"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/service"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/cron"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/database"
+	dbCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/database/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/settings"
-	"github.com/robfig/cron/v3"
 )
 
 const defaultCronSpec = "0 0 12 * * *"
-
-func StartCron(spec string, f func()) *cron.Cron {
-	c := cron.New()
-	_, err := c.AddFunc(spec, f)
-	if err != nil {
-		slog.Error("failed to add cron job", slog.Any("error", err))
-		return nil
-	}
-	slog.Info("cron job added", slog.Any("spec", spec))
-	c.Start()
-	return c
-}
 
 func InitDatabase() (*database.DB, error) {
 	db, err := database.New(dbCfg.NewFromEnv())
@@ -98,11 +86,15 @@ func main() {
 		userRepo,
 		&message.PlainRate{},
 	)
-	StartCron(cronSpec, func() {
+	cronManager := cron.NewManager()
+	notifyF := func() error {
 		ctx, cancel := context.WithTimeout(context.Background(), server.RateTimeout)
 		defer cancel()
-		notifier.Notify(ctx)
-	})
+		return notifier.Notify(ctx)
+	}
+	cronManager.AddJob(cronSpec, notifyF) // nolint: errcheck
+	cronManager.Start()
+	defer cronManager.Stop()
 
 	// Start HTTP server
 	s := server.NewServer(apiClient.Config, server.NewEngine(apiClient))

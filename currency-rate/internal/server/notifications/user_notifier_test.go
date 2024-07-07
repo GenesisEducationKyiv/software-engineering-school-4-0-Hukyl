@@ -8,6 +8,7 @@ import (
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/models"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/notifications"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 type mockRateFetcher struct {
@@ -95,8 +96,9 @@ func TestUserNotify(t *testing.T) {
 		messageFormatter,
 	)
 	// Act
-	notifier.Notify(ctx)
+	err := notifier.Notify(ctx)
 	// Assert
+	require.NoError(t, err)
 	rateService.AssertExpectations(t)
 	userRepository.AssertExpectations(t)
 	emailClient.AssertExpectations(t)

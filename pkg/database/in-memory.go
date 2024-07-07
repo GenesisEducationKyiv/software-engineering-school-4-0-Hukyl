@@ -3,7 +3,7 @@ package database
 import (
 	"testing"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/database/config"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/database/config"
 )
 
 func SetUpTest(tb testing.TB, models ...any) *DB {

@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/models"
@@ -43,17 +44,20 @@ func NewUsersNotifier(
 	}
 }
 
-func (n *UsersNotifier) Notify(ctx context.Context) {
+func logAndWrap(message string, err error) error {
+	slog.Error(message, slog.Any("error", err))
+	return fmt.Errorf("%s: %w", message, err)
+}
+
+func (n *UsersNotifier) Notify(ctx context.Context) error {
 	rate, err := n.rateService.FetchRate(ctx, "USD", "UAH")
 	if err != nil {
-		slog.Warn("failed to fetch rate", slog.Any("error", err))
-		return
+		return logAndWrap("failed to fetch rate", err)
 	}
 
 	users, err := n.userRepository.FindAll()
 	if err != nil {
-		slog.Error("failed to fetch users", slog.Any("error", err))
-		return
+		return logAndWrap("failed to fetch users", err)
 	}
 
 	slog.Info(
@@ -74,9 +78,7 @@ func (n *UsersNotifier) Notify(ctx context.Context) {
 		n.messageFormatter.String(),
 	)
 	if err != nil {
-		slog.Error(
-			"failed sending email",
-			slog.Any("error", err),
-		)
+		return logAndWrap("failed to send email", err)
 	}
+	return nil
 }

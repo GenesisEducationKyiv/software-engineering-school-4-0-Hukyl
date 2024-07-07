@@ -3,11 +3,10 @@ module github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/cur
 go 1.22.4
 
 require (
-	github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl v0.0.0-20240707174254-efd5bd158fea
+	github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl v0.0.0-20240707175312-86628e1ed332
 	github.com/ericchiang/css v1.3.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/rabbitmq/amqp091-go v1.10.0
-	github.com/robfig/cron/v3 v3.0.1
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.25.0
 	gorm.io/driver/postgres v1.5.7
@@ -43,6 +42,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect

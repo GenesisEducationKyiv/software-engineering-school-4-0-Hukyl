@@ -3,8 +3,8 @@ package database_test
 import (
 	"testing"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/database"
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/database/config"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/database"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/database/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
