@@ -25,6 +25,12 @@ services:
       AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
       RABBITMQ_DEFAULT_USER: rabbitmq
       RABBITMQ_DEFAULT_PASS: rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q status
+      start_period: 10s
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
   api-service:
     container_name: api-service
@@ -34,10 +40,12 @@ services:
     ports:
       - 8080:8080
     volumes:
-      - .:/go/src/github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl
+      - ./currency-rate:/go/src/github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate
     depends_on:
-      - postgres
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_started
     env_file:
       - ./.env
     restart: always
@@ -53,9 +61,10 @@ services:
     ports:
       - 8081:8081
     volumes:
-      - .:/go/src/github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl
+      - ./email-service:/go/src/github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     env_file:
       - ./.env
     restart: always
