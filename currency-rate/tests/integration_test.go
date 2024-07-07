@@ -119,6 +119,30 @@ func TestSubscribeUser_Conflict(t *testing.T) {
 	assert.True(t, exists)
 }
 
+func TestUnsubscribeUser_Success(t *testing.T) {
+	// Arrange
+	user := &models.User{Email: "example@gmail.com"}
+	repo := models.NewUserRepository(database.SetUpTest(t, &models.User{}))
+	err := repo.Create(user)
+	require.NoError(t, err)
+	engine := server.NewEngine(server.Client{
+		Config:   serverCfg.Config{Port: "8080"},
+		UserRepo: repo,
+	})
+	// Act
+	req := httptest.NewRequest(http.MethodPost, server.UnsubscribePath, nil)
+	req.PostForm = map[string][]string{
+		"email": {user.Email},
+	}
+	rr := httptest.NewRecorder()
+	engine.ServeHTTP(rr, req)
+	// Assert
+	assert.Equal(t, http.StatusOK, rr.Code)
+	exists, err := repo.Exists(user)
+	require.NoError(t, err)
+	assert.False(t, exists)
+}
+
 func TestMain(m *testing.M) {
 	gin.SetMode(gin.ReleaseMode)
 	_ = settings.InitSettings()

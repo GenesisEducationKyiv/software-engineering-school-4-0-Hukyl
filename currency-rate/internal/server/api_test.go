@@ -42,6 +42,11 @@ func (m *mockUserRepository) Create(user *models.User) error {
 	return args.Error(0)
 }
 
+func (m *mockUserRepository) Delete(user *models.User) error {
+	args := m.Called(user)
+	return args.Error(0)
+}
+
 func (m *mockUserRepository) Exists(user *models.User) (bool, error) {
 	args := m.Called(user)
 	return args.Bool(0), args.Error(1)
@@ -110,6 +115,53 @@ func TestSubscribeUserAlreadySubscribed(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	engine.ServeHTTP(recorder, req)
 	assert.Equal(t, http.StatusConflict, recorder.Code)
+}
+
+func TestUnsubscribeUserNoEmail(t *testing.T) {
+	engine := server.NewEngine(server.Client{
+		Config:      serverCfg.Config{Port: "8080"},
+		RateService: &mockRateService{},
+	})
+
+	req := httptest.NewRequest(http.MethodPost, server.UnsubscribePath, nil)
+	rr := httptest.NewRecorder()
+	engine.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestUnsubscribeUser(t *testing.T) {
+	mockRepo := new(mockUserRepository)
+	mockRepo.On("Exists", mock.Anything).Return(true, nil).Once()
+	mockRepo.On("Delete", mock.Anything).Return(nil).Once()
+	engine := server.NewEngine(server.Client{
+		Config:   serverCfg.Config{Port: "8080"},
+		UserRepo: mockRepo,
+	})
+
+	req := httptest.NewRequest(http.MethodPost, server.UnsubscribePath, nil)
+	req.PostForm = map[string][]string{
+		"email": {"example@gmail.com"},
+	}
+	rr := httptest.NewRecorder()
+	engine.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestUnsubscribeUserNotSubscribed(t *testing.T) {
+	mockRepo := new(mockUserRepository)
+	mockRepo.On("Exists", mock.Anything).Return(false, nil).Once()
+	engine := server.NewEngine(server.Client{
+		Config:   serverCfg.Config{Port: "8080"},
+		UserRepo: mockRepo,
+	})
+
+	req := httptest.NewRequest(http.MethodPost, server.UnsubscribePath, nil)
+	req.PostForm = map[string][]string{
+		"email": {"example@gmail.com"},
+	}
+	rr := httptest.NewRecorder()
+	engine.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusGone, rr.Code)
 }
 
 func TestMain(m *testing.M) {
