@@ -15,7 +15,7 @@ type GomailMailer struct {
 }
 
 func (gm *GomailMailer) SendEmail(
-	_ context.Context, emails []string,
+	ctx context.Context, emails []string,
 	subject, message string,
 ) error {
 	mail := gomail.NewMessage()
@@ -38,8 +38,19 @@ func (gm *GomailMailer) SendEmail(
 		gm.config.SMTPUser,
 		gm.config.SMTPPassword,
 	)
-	if err := dialer.DialAndSend(mail); err != nil {
-		return fmt.Errorf("failed to send email: %w", err)
+
+	done := make(chan error)
+	go func() {
+		done <- dialer.DialAndSend(mail)
+	}()
+
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("email sending cancelled: %w", ctx.Err())
+	case err := <-done:
+		if err != nil {
+			return fmt.Errorf("failed to send email: %w", err)
+		}
 	}
 	return nil
 }
