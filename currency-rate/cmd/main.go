@@ -16,7 +16,7 @@ import (
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/notifications"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/notifications/message"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/service"
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/pkg/settings"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/settings"
 	"github.com/robfig/cron/v3"
 )
 
