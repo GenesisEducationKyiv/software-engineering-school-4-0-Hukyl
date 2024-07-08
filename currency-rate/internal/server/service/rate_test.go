@@ -2,9 +2,9 @@ package service_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/models"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/rate"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/service"
 	"github.com/stretchr/testify/assert"
@@ -16,10 +16,6 @@ type (
 	mockRateFetcher struct {
 		mock.Mock
 	}
-
-	mockRateRepository struct {
-		mock.Mock
-	}
 )
 
 func (m *mockRateFetcher) FetchRate(ctx context.Context, from, to string) (rate.Rate, error) {
@@ -27,31 +23,24 @@ func (m *mockRateFetcher) FetchRate(ctx context.Context, from, to string) (rate.
 	return args.Get(0).(rate.Rate), args.Error(1)
 }
 
-func (m *mockRateRepository) Create(rate *models.Rate) error {
-	args := m.Called(rate)
-	return args.Error(0)
-}
-
 func TestFetchRate(t *testing.T) {
 	// Arrange
 	ccFrom := "USD"
 	ccTo := "UAH"
-	expected := &models.Rate{
+	expected := &rate.Rate{
 		CurrencyFrom: ccFrom,
 		CurrencyTo:   ccTo,
 		Rate:         27.5,
 	}
-	mockFetcher := new(mockRateFetcher)
-	mockFetcher.On("FetchRate", mock.Anything, ccFrom, ccTo).Return(rate.Rate{
-		CurrencyFrom: expected.CurrencyFrom,
-		CurrencyTo:   expected.CurrencyTo,
-		Rate:         expected.Rate,
-	}, nil)
+	firstFetcher := new(mockRateFetcher)
+	firstFetcher.On("FetchRate", mock.Anything, ccFrom, ccTo).Return(
+		mock.Anything, errors.New("failed to fetch rate"),
+	)
 
-	mockRepo := new(mockRateRepository)
-	mockRepo.On("Create", expected).Return(nil)
+	secondFetcher := new(mockRateFetcher)
+	secondFetcher.On("FetchRate", mock.Anything, ccFrom, ccTo).Return(*expected, nil)
 
-	s := service.NewRateService(mockRepo, mockFetcher)
+	s := service.NewRateService(firstFetcher, secondFetcher)
 
 	// Act
 	result, err := s.FetchRate(context.Background(), ccFrom, ccTo)
@@ -59,5 +48,6 @@ func TestFetchRate(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 	assert.Equal(t, expected, result)
-	mockFetcher.AssertExpectations(t)
+	firstFetcher.AssertExpectations(t)
+	secondFetcher.AssertExpectations(t)
 }

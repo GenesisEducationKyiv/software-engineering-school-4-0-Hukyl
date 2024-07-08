@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/models"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/rate"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server"
 	serverCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/settings"
@@ -27,9 +28,9 @@ type (
 	}
 )
 
-func (m *mockRateService) FetchRate(ctx context.Context, from, to string) (*models.Rate, error) {
+func (m *mockRateService) FetchRate(ctx context.Context, from, to string) (*rate.Rate, error) {
 	args := m.Called(ctx, from, to)
-	return args.Get(0).(*models.Rate), args.Error(1)
+	return args.Get(0).(*rate.Rate), args.Error(1)
 }
 
 func (m *mockUserRepository) FindAll() ([]models.User, error) {
@@ -54,7 +55,7 @@ func (m *mockUserRepository) Exists(user *models.User) (bool, error) {
 
 func TestGetRate(t *testing.T) {
 	mockService := new(mockRateService)
-	mockedRate := &models.Rate{Rate: 27.5}
+	mockedRate := &rate.Rate{Rate: 27.5}
 	mockService.On("FetchRate", mock.Anything, "USD", "UAH").Return(mockedRate, nil)
 	engine := server.NewEngine(server.Client{
 		Config:      serverCfg.Config{Port: "8080"},
