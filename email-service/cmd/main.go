@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/broker/rate"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/broker/subscriber"
+	appCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/mail"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/mail/backends"
 	mailCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/mail/config"
@@ -28,10 +28,7 @@ const defaultCronSpec = "0 0 12 * * *"
 
 const emailTimeout = 5 * time.Second
 
-var (
-	rateQueueName = os.Getenv("RATE_QUEUE_NAME")
-	userQueueName = os.Getenv("USER_QUEUE_NAME")
-)
+var appConfig appCfg.Config
 
 func InitDatabase() (*database.DB, error) {
 	db, err := database.New(dbCfg.NewFromEnv())
@@ -46,14 +43,9 @@ func InitDatabase() (*database.DB, error) {
 
 func InitNotificationsCron(db *database.DB, mailer notifications.EmailClient) *cron.Manager {
 	// Start cron job for notifications
-	envVar := "NOTIFICATION_CRON_SPEC"
-	cronSpec := os.Getenv(envVar)
-	if cronSpec == "" {
-		slog.Warn(
-			fmt.Sprintf("%s is not set, using default value", envVar),
-			slog.Any("default", defaultCronSpec),
-		)
-		cronSpec = defaultCronSpec
+	spec := appConfig.NotificationCropSpec
+	if spec == "" {
+		spec = defaultCronSpec
 	}
 
 	notifier := notifications.NewMailNotifier(
@@ -70,7 +62,7 @@ func InitNotificationsCron(db *database.DB, mailer notifications.EmailClient) *c
 	}
 
 	cronManager := cron.NewManager()
-	cronManager.AddJob(cronSpec, notifyF) // nolint: errcheck
+	cronManager.AddJob(spec, notifyF) // nolint: errcheck
 	return cronManager
 }
 
@@ -95,7 +87,7 @@ func doWithContext(ctx context.Context, f func() error) error {
 
 func InitRateConsumer(config transportCfg.Config, rateRepo *models.RateRepository) *rate.Client {
 	rateConsumer, err := rate.NewClient(transportCfg.Config{
-		QueueName: rateQueueName,
+		QueueName: appConfig.RateQueueName,
 		BrokerURI: config.BrokerURI,
 	})
 	if err != nil {
@@ -135,7 +127,7 @@ func InitSubscriberConsumer(
 	config transportCfg.Config, subRepo *models.SubscriberRepository,
 ) *subscriber.Client {
 	subConsumer, err := subscriber.NewClient(transportCfg.Config{
-		QueueName: userQueueName,
+		QueueName: appConfig.UserQueueName,
 		BrokerURI: config.BrokerURI,
 	})
 	if err != nil {
@@ -175,6 +167,9 @@ func main() {
 		slog.Error("initializing settings", slog.Any("error", err))
 	}
 
+	// Initialize app config
+	appConfig = appCfg.NewFromEnv()
+
 	// Initialize database
 	db, err := InitDatabase()
 	if err != nil {
@@ -185,10 +180,9 @@ func main() {
 	subRepo := models.NewSubscriberRepository(db)
 
 	// Initialize mailer by debug mode
-	debug := os.Getenv("DEBUG") == "true"
 	var mailer mail.Mailer
 	mailConfig := mailCfg.NewFromEnv()
-	if debug {
+	if appConfig.Debug {
 		mailer = backends.NewConsoleMailer(mailConfig)
 	} else {
 		mailer = backends.NewGomailMailer(mailConfig)

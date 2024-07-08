@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"log/slog"
-	"os"
 	"time"
 
 	rateProducer "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/broker/rate"
 	userProducer "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/broker/user"
+	appCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/config"
 	cronRate "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/cron/rate"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/models"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/rate/fetchers"
@@ -26,10 +26,7 @@ const (
 	ccTo   = "UAH"
 )
 
-var (
-	rateQueueName = os.Getenv("RATE_QUEUE_NAME")
-	userQueueName = os.Getenv("USER_QUEUE_NAME")
-)
+var appConfig appCfg.Config
 
 const eventTimeout = 5 * time.Second
 
@@ -76,13 +73,13 @@ func InitDatabase() (*database.DB, error) {
 func InitFetchers() []service.RateFetcher {
 	nbuFetcher := fetchers.NewNBURateFetcher()
 	currencyBeaconFetcher := fetchers.NewCurrencyBeaconFetcher(
-		os.Getenv("CURRENCY_BEACON_API_KEY"),
+		appConfig.CurrencyBeaconAPIKey,
 	)
 	return []service.RateFetcher{currencyBeaconFetcher, nbuFetcher}
 }
 
 func InitCron(transportConfig transportCfg.Config, fetcher service.RateFetcher) *cron.Manager {
-	transportConfig.QueueName = rateQueueName
+	transportConfig.QueueName = appConfig.RateQueueName
 
 	producer, err := rateProducer.NewProducer(transportConfig)
 	if err != nil {
@@ -91,12 +88,8 @@ func InitCron(transportConfig transportCfg.Config, fetcher service.RateFetcher) 
 	}
 
 	job := cronRate.NewCronJob(fetcher, producer, ccFrom, ccTo)
-	spec := os.Getenv("RATE_REFRESH_CRON_SPEC")
+	spec := appConfig.RateRefreshCropSpec
 	if spec == "" {
-		slog.Warn(
-			"RATE_REFRESH_CRON_SPEC is not set, using default value",
-			slog.Any("default", "@every 5m"),
-		)
 		spec = "@every 5m"
 	}
 
@@ -110,6 +103,8 @@ func main() {
 		slog.Error("failed to initialize settings", slog.Any("error", err))
 		// panic(err)
 	}
+
+	appConfig = appCfg.NewFromEnv()
 
 	db, err := InitDatabase()
 	if err != nil {
@@ -125,7 +120,7 @@ func main() {
 	// Initializer user event producer
 	userProducer, err := userProducer.NewProducer(transportCfg.Config{
 		BrokerURI: transportConfig.BrokerURI,
-		QueueName: userQueueName,
+		QueueName: appConfig.RateQueueName,
 	})
 	if err != nil {
 		slog.Error("failed to initialize user producer", slog.Any("error", err))
