@@ -28,9 +28,9 @@ type (
 	}
 )
 
-func (m *mockRateService) FetchRate(ctx context.Context, from, to string) (*rate.Rate, error) {
+func (m *mockRateService) FetchRate(ctx context.Context, from, to string) (rate.Rate, error) {
 	args := m.Called(ctx, from, to)
-	return args.Get(0).(*rate.Rate), args.Error(1)
+	return args.Get(0).(rate.Rate), args.Error(1)
 }
 
 func (m *mockUserRepository) FindAll() ([]models.User, error) {

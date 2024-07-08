@@ -50,9 +50,9 @@ func TestChainFetchRate_FailFirst(t *testing.T) {
 	// Arrange
 	nbuFetcher := fetchers.NewNBURateFetcher()
 	curBeaconFetcher := fetchers.NewCurrencyBeaconFetcher("")
-	curBeaconFetcher.SetNext(nbuFetcher)
+	service := service.NewRateService(curBeaconFetcher, nbuFetcher)
 	// Act
-	result, err := curBeaconFetcher.FetchRate(context.Background(), ccFrom, ccTo)
+	result, err := service.FetchRate(context.Background(), ccFrom, ccTo)
 	// Assert
 	require.NoError(t, err)
 	assert.NotZero(t, result.Rate)
@@ -60,9 +60,8 @@ func TestChainFetchRate_FailFirst(t *testing.T) {
 
 func TestRateServiceFetchRate_Success(t *testing.T) {
 	// Arrange
-	rateRepo := models.NewRateRepository(database.SetUpTest(t, &models.Rate{}))
 	nbuFetcher := fetchers.NewNBURateFetcher()
-	rateFetcher := service.NewRateService(rateRepo, nbuFetcher)
+	rateFetcher := service.NewRateService(nbuFetcher)
 	// Act
 	result, err := rateFetcher.FetchRate(context.Background(), ccFrom, ccTo)
 	// Assert
