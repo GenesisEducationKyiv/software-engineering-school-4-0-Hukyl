@@ -1,18 +1,12 @@
 package transport
 
 import (
-	"fmt"
 	"log/slog"
 	"sync"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/broker/transport/config"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker/transport/config"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
-
-func logAndWrap(msg string, err error) error {
-	slog.Error(msg, slog.Any("error", err))
-	return fmt.Errorf("%s: %w", msg, err)
-}
 
 var listenerAccess = sync.Mutex{}
 
