@@ -3,7 +3,7 @@ package message
 import (
 	"fmt"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/models"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/models"
 )
 
 // PlainRate is a message that contains the exchange rate between two currencies.

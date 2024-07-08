@@ -5,28 +5,28 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/models"
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/notifications"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/models"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/notifications"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-type mockRateFetcher struct {
+type mockRateRepo struct {
 	mock.Mock
 }
 
-func (m *mockRateFetcher) FetchRate(ctx context.Context, from, to string) (*models.Rate, error) {
-	args := m.Called(ctx, from, to)
+func (m *mockRateRepo) Latest(ccFrom, ccTo string) (*models.Rate, error) {
+	args := m.Called(ccFrom, ccTo)
 	return args.Get(0).(*models.Rate), args.Error(1)
 }
 
-type mockUserRepository struct {
+type mockSubRepo struct {
 	mock.Mock
 }
 
-func (m *mockUserRepository) FindAll() ([]models.User, error) {
+func (m *mockSubRepo) FindAll() ([]models.Subscriber, error) {
 	args := m.Called()
-	return args.Get(0).([]models.User), args.Error(1)
+	return args.Get(0).([]models.Subscriber), args.Error(1)
 }
 
 type mockMessageFormatter struct {
@@ -62,15 +62,15 @@ func TestUserNotify(t *testing.T) {
 	ccFrom := "USD"
 	ccTo := "UAH"
 
-	rateService := new(mockRateFetcher)
-	rateService.On("FetchRate", mock.Anything, ccFrom, ccTo).Return(&models.Rate{
+	rateRepo := new(mockRateRepo)
+	rateRepo.On("Latest", ccFrom, ccTo).Return(&models.Rate{
 		Rate:         27.5,
 		CurrencyFrom: ccFrom,
 		CurrencyTo:   ccTo,
 	}, nil)
 
-	userRepository := new(mockUserRepository)
-	userRepository.On("FindAll").Return([]models.User{
+	subRepo := new(mockSubRepo)
+	subRepo.On("FindAll").Return([]models.Subscriber{
 		{Email: "example@gmail.com"},
 		{Email: "example2@gmail.com"},
 	}, nil)
@@ -89,17 +89,17 @@ func TestUserNotify(t *testing.T) {
 	messageFormatter.On("Subject").Return(fmt.Sprintf("%s-%s exchange rate", ccFrom, ccTo))
 	messageFormatter.On("String").Return(fmt.Sprintf("1 %s = 27.5 %s", ccFrom, ccTo))
 
-	notifier := notifications.NewUsersNotifier(
+	notifier := notifications.NewMailNotifier(
 		emailClient,
-		rateService,
-		userRepository,
+		rateRepo,
+		subRepo,
 		messageFormatter,
 	)
 	// Act
 	err := notifier.Notify(ctx)
 	// Assert
 	require.NoError(t, err)
-	rateService.AssertExpectations(t)
-	userRepository.AssertExpectations(t)
+	rateRepo.AssertExpectations(t)
+	subRepo.AssertExpectations(t)
 	emailClient.AssertExpectations(t)
 }
