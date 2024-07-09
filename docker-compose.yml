@@ -1,5 +1,3 @@
-version: '3'
-
 x-common-variables: &compose-database-env
   environment:
     - DATABASE_SERVICE=postgres

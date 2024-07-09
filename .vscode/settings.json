@@ -27,10 +27,14 @@
     "go.buildFlags": [
         "-tags",
         "integration",
+        "-tags",
+        "system",
     ],
     "go.lintFlags": [
         "--build-tags",
         "integration",
+        "--build-tags",
+        "system",
     ],
     "go.lintOnSave": "package",
 }
