@@ -3,7 +3,7 @@ module github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/ema
 go 1.22.4
 
 require (
-	github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl v0.0.0-20240708004730-72a339c718ab
+	github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl v0.0.0-20240708213827-0961f0b0ff08
 	github.com/go-gomail/gomail v0.0.0-20160411212932-81ebce5c23df
 	github.com/mocktools/go-smtp-mock/v2 v2.3.0
 	github.com/stretchr/testify v1.9.0
