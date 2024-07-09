@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"os"
 	"time"
 
 	rateProducer "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/broker/rate"
@@ -70,6 +71,17 @@ func InitDatabase() (*database.DB, error) {
 	return db, nil
 }
 
+func InitLogger() *slog.Logger {
+	loggerOptions := &slog.HandlerOptions{}
+	if appConfig.Debug {
+		loggerOptions.Level = slog.LevelDebug
+	}
+	logger := slog.New(
+		slog.NewTextHandler(os.Stdout, loggerOptions),
+	).With(slog.Any("service", "currency-rate"))
+	return logger
+}
+
 func InitFetchers() []service.RateFetcher {
 	nbuFetcher := fetchers.NewNBURateFetcher()
 	currencyBeaconFetcher := fetchers.NewCurrencyBeaconFetcher(
@@ -105,6 +117,7 @@ func main() {
 	}
 
 	appConfig = appCfg.NewFromEnv()
+	slog.SetDefault(InitLogger())
 
 	db, err := InitDatabase()
 	if err != nil {
@@ -120,7 +133,7 @@ func main() {
 	// Initializer user event producer
 	userProducer, err := userProducer.NewProducer(transportCfg.Config{
 		BrokerURI: transportConfig.BrokerURI,
-		QueueName: appConfig.RateQueueName,
+		QueueName: appConfig.UserQueueName,
 	})
 	if err != nil {
 		slog.Error("failed to initialize user producer", slog.Any("error", err))

@@ -62,7 +62,10 @@ func InitNotificationsCron(db *database.DB, mailer notifications.EmailClient) *c
 	}
 
 	cronManager := cron.NewManager()
-	cronManager.AddJob(spec, notifyF) // nolint: errcheck
+	err := cronManager.AddJob(spec, notifyF)
+	if err != nil {
+		slog.Error("adding job", slog.Any("error", err))
+	}
 	return cronManager
 }
 
@@ -134,7 +137,7 @@ func InitSubscriberConsumer(
 		slog.Error("creating subscriber client", slog.Any("error", err))
 		return nil
 	}
-	subConsumer.SubscribeCreate(func(ctx context.Context, email string) error { // nolint: errcheck
+	err = subConsumer.SubscribeCreate(func(ctx context.Context, email string) error {
 		slog.Info("new subscriber", slog.Any("email", email))
 		sub := &models.Subscriber{Email: email}
 		err := doWithContext(ctx, func() error {
@@ -145,7 +148,10 @@ func InitSubscriberConsumer(
 		}
 		return nil
 	})
-	subConsumer.SubscribeDelete(func(ctx context.Context, email string) error { // nolint: errcheck
+	if err != nil {
+		slog.Error("subscribing to create", slog.Any("error", err))
+	}
+	err = subConsumer.SubscribeDelete(func(ctx context.Context, email string) error {
 		slog.Info("delete subscriber", slog.Any("email", email))
 		subscriber := &models.Subscriber{Email: email}
 
@@ -157,7 +163,21 @@ func InitSubscriberConsumer(
 		}
 		return nil
 	})
+	if err != nil {
+		slog.Error("subscribing to delete", slog.Any("error", err))
+	}
 	return subConsumer
+}
+
+func InitLogger() *slog.Logger {
+	loggerOptions := &slog.HandlerOptions{}
+	if appConfig.Debug {
+		loggerOptions.Level = slog.LevelDebug
+	}
+	logger := slog.New(
+		slog.NewTextHandler(os.Stdout, loggerOptions),
+	).With(slog.Any("service", "email-service"))
+	return logger
 }
 
 func main() {
@@ -169,6 +189,7 @@ func main() {
 
 	// Initialize app config
 	appConfig = appCfg.NewFromEnv()
+	slog.SetDefault(InitLogger())
 
 	// Initialize database
 	db, err := InitDatabase()

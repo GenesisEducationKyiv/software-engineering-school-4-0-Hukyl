@@ -46,7 +46,7 @@ func (p *Producer) sendEvent(
 ) error {
 	event := p.createEvent(eventName, data)
 	slog.Info(
-		"producing event",
+		"producing user event",
 		slog.Any("event", eventName),
 	)
 	msgBytes, err := p.marshal(event)

@@ -3,6 +3,7 @@ package subscriber
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"time"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker"
@@ -42,6 +43,11 @@ func (c *Client) handleWithEvent(eventName string, f Handler) func([]byte) error
 		if event.Event.Type != eventName {
 			return nil
 		}
+		slog.Info(
+			"delivering message",
+			slog.Any("listener", f),
+			slog.Any("eventName", event.Event.Type),
+		)
 		return f(ctx, event.Data.Email)
 	}
 }

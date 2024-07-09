@@ -43,6 +43,11 @@ func (c *Client) Subscribe(f Handler) error {
 		if event.Event.Type != eventType {
 			return nil
 		}
+		slog.Info(
+			"delivering message",
+			slog.Any("listener", f),
+			slog.Any("eventName", event.Event.Type),
+		)
 		return f(ctx, event.Data.From, event.Data.To, event.Data.Rate, event.Data.Time)
 	})
 	return nil
