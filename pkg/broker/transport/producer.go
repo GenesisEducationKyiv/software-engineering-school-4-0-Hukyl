@@ -21,6 +21,7 @@ type Producer struct {
 }
 
 func (p *Producer) Close() error {
+	slog.Info("closing producer", slog.Any("queue", p.config.QueueName))
 	if err := p.channel.Close(); err != nil {
 		return logAndWrap("closing channel", err)
 	}

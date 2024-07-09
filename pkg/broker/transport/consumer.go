@@ -55,14 +55,14 @@ func (c *Consumer) Listen(stop <-chan struct{}) {
 			if !ok {
 				return
 			}
-			slog.Info("received message")
+			slog.Info("received message", slog.Any("queue", c.config.QueueName))
 			c.deliverMessage(msg)
 		}
 	}
 }
 
 func (c *Consumer) Close() error {
-	slog.Info("closing consumer")
+	slog.Info("closing consumer", slog.Any("queue", c.config.QueueName))
 	if err := c.channel.Close(); err != nil {
 		return logAndWrap("closing channel", err)
 	}
