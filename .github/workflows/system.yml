@@ -18,9 +18,7 @@ jobs:
 
     - name: Install Docker Compose
       run: |
-        sudo apt-get update
-        sudo apt-get install -y docker.io
-        sudo apt-get install -y docker-compose
+        curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh ./get-docker.sh
 
     - name: Run the containers
       run: docker compose -f docker-compose.test.yml up -d
