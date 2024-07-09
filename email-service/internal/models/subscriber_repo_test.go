@@ -11,7 +11,6 @@ import (
 
 func TestSubscriberRepositoryCreate(t *testing.T) {
 	// Arrange
-	t.Parallel()
 	db := database.SetUpTest(t, &models.Subscriber{})
 	repo := models.NewSubscriberRepository(db)
 	subscriber := &models.Subscriber{Email: "test@gmail.com"}
@@ -25,7 +24,6 @@ func TestSubscriberRepositoryCreate(t *testing.T) {
 
 func TestSubscriberRepositoryFindAll(t *testing.T) {
 	// Arrange
-	t.Parallel()
 	db := database.SetUpTest(t, &models.Subscriber{})
 	repo := models.NewSubscriberRepository(db)
 	subscribers := []*models.Subscriber{
@@ -53,7 +51,6 @@ func TestSubscriberRepositoryFindAll(t *testing.T) {
 
 func TestSubscriberRepositoryExists(t *testing.T) {
 	// Arrange
-	t.Parallel()
 	db := database.SetUpTest(t, &models.Subscriber{})
 	repo := models.NewSubscriberRepository(db)
 	subscriber := &models.Subscriber{Email: "example@gmail.com"}
@@ -67,7 +64,6 @@ func TestSubscriberRepositoryExists(t *testing.T) {
 
 func TestSubscriberRepositoryDelete(t *testing.T) {
 	// Arrange
-	t.Parallel()
 	db := database.SetUpTest(t, &models.Subscriber{})
 	repo := models.NewSubscriberRepository(db)
 	subscriber := &models.Subscriber{Email: "example@gmail.com"}
@@ -83,7 +79,6 @@ func TestSubscriberRepositoryDelete(t *testing.T) {
 
 func TestSubscriberRepositoryDeleteNonExisting(t *testing.T) {
 	// Arrange
-	t.Parallel()
 	db := database.SetUpTest(t, &models.Subscriber{})
 	repo := models.NewSubscriberRepository(db)
 	subscriber := &models.Subscriber{Email: "example@gmail.com"}

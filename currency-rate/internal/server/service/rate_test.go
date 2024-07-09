@@ -27,18 +27,18 @@ func TestFetchRate(t *testing.T) {
 	// Arrange
 	ccFrom := "USD"
 	ccTo := "UAH"
-	expected := &rate.Rate{
+	expected := rate.Rate{
 		CurrencyFrom: ccFrom,
 		CurrencyTo:   ccTo,
 		Rate:         27.5,
 	}
 	firstFetcher := new(mockRateFetcher)
 	firstFetcher.On("FetchRate", mock.Anything, ccFrom, ccTo).Return(
-		mock.Anything, errors.New("failed to fetch rate"),
+		rate.Rate{}, errors.New("failed to fetch rate"),
 	)
 
 	secondFetcher := new(mockRateFetcher)
-	secondFetcher.On("FetchRate", mock.Anything, ccFrom, ccTo).Return(*expected, nil)
+	secondFetcher.On("FetchRate", mock.Anything, ccFrom, ccTo).Return(expected, nil)
 
 	s := service.NewRateService(firstFetcher, secondFetcher)
 

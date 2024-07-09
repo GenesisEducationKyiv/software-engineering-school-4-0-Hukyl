@@ -55,7 +55,7 @@ func (m *mockUserRepository) Exists(user *models.User) (bool, error) {
 
 func TestGetRate(t *testing.T) {
 	mockService := new(mockRateService)
-	mockedRate := &rate.Rate{Rate: 27.5}
+	mockedRate := rate.Rate{Rate: 27.5}
 	mockService.On("FetchRate", mock.Anything, "USD", "UAH").Return(mockedRate, nil)
 	engine := server.NewEngine(server.Client{
 		Config:      serverCfg.Config{Port: "8080"},

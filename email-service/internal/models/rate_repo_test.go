@@ -10,7 +10,6 @@ import (
 )
 
 func TestRateRepositoryCreate(t *testing.T) {
-	t.Parallel()
 	db := database.SetUpTest(t, &models.Rate{})
 	repo := models.NewRateRepository(db)
 	rate := &models.Rate{CurrencyFrom: "USD", CurrencyTo: "UAH", Rate: 27.5}
