@@ -35,9 +35,6 @@ jobs:
               echo "Container exited with non-zero exit code: $exit_code"
               exit 1
             fi
-          else
-            echo "Container with name 'api-service' does not exist"
-            exit 1
           fi
           sleep 5
         done
