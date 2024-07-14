@@ -30,7 +30,7 @@ const emailTimeout = 5 * time.Second
 
 var appConfig appCfg.Config
 
-func InitDatabase() (*database.DB, error) {
+func NewDatabase() (*database.DB, error) {
 	db, err := database.New(dbCfg.NewFromEnv())
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func InitDatabase() (*database.DB, error) {
 	return db, nil
 }
 
-func InitNotificationsCron(db *database.DB, mailer notifications.EmailClient) *cron.Manager {
+func NewNotificationsCron(db *database.DB, mailer notifications.EmailClient) *cron.Manager {
 	// Start cron job for notifications
 	spec := appConfig.NotificationCropSpec
 	if spec == "" {
@@ -88,7 +88,7 @@ func doWithContext(ctx context.Context, f func() error) error {
 	}
 }
 
-func InitRateConsumer(config transportCfg.Config, rateRepo *models.RateRepository) *rate.Client {
+func NewRateConsumer(config transportCfg.Config, rateRepo *models.RateRepository) *rate.Client {
 	rateConsumer, err := rate.NewClient(transportCfg.Config{
 		QueueName: appConfig.RateQueueName,
 		BrokerURI: config.BrokerURI,
@@ -126,7 +126,7 @@ func InitRateConsumer(config transportCfg.Config, rateRepo *models.RateRepositor
 	return rateConsumer
 }
 
-func InitSubscriberConsumer(
+func NewSubscriberConsumer(
 	config transportCfg.Config, subRepo *models.SubscriberRepository,
 ) *subscriber.Client {
 	subConsumer, err := subscriber.NewClient(transportCfg.Config{
@@ -169,7 +169,7 @@ func InitSubscriberConsumer(
 	return subConsumer
 }
 
-func InitLogger() *slog.Logger {
+func NewLogger() *slog.Logger {
 	loggerOptions := &slog.HandlerOptions{}
 	if appConfig.Debug {
 		loggerOptions.Level = slog.LevelDebug
@@ -189,12 +189,12 @@ func main() {
 
 	// Initialize app config
 	appConfig = appCfg.NewFromEnv()
-	slog.SetDefault(InitLogger())
+	slog.SetDefault(NewLogger())
 
 	// Initialize database
-	db, err := InitDatabase()
+	db, err := NewDatabase()
 	if err != nil {
-		slog.Error("initializing database", slog.Any("error", err))
+		slog.Error("creating database", slog.Any("error", err))
 		panic(err)
 	}
 	rateRepo := models.NewRateRepository(db)
@@ -211,20 +211,20 @@ func main() {
 	mailClient := mail.NewClient(mailer)
 
 	// Initialize cron manager for notifications
-	cronManager := InitNotificationsCron(db, mailClient)
+	cronManager := NewNotificationsCron(db, mailClient)
 	cronManager.Start()
 	defer cronManager.Stop()
 
 	transportConfig := transportCfg.NewFromEnv()
 	// Create rate consumer and subscribe to events
-	rateConsumer := InitRateConsumer(transportConfig, rateRepo)
+	rateConsumer := NewRateConsumer(transportConfig, rateRepo)
 	if rateConsumer == nil {
 		slog.Error("initializing rate consumer")
 	}
 	defer rateConsumer.Close()
 
 	// Create subscribe consumer and subscribe to events
-	subConsumer := InitSubscriberConsumer(transportConfig, subRepo)
+	subConsumer := NewSubscriberConsumer(transportConfig, subRepo)
 	if subConsumer == nil {
 		slog.Error("initializing subscriber consumer")
 	}

@@ -60,7 +60,7 @@ func (u *UserRepoDecorator) Delete(user *models.User) error {
 	return nil
 }
 
-func InitDatabase() (*database.DB, error) {
+func NewDatabase() (*database.DB, error) {
 	db, err := database.New(dbCfg.NewFromEnv())
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func InitDatabase() (*database.DB, error) {
 	return db, nil
 }
 
-func InitLogger() *slog.Logger {
+func NewLogger() *slog.Logger {
 	loggerOptions := &slog.HandlerOptions{}
 	if appConfig.Debug {
 		loggerOptions.Level = slog.LevelDebug
@@ -82,7 +82,7 @@ func InitLogger() *slog.Logger {
 	return logger
 }
 
-func InitFetchers() []service.RateFetcher {
+func NewFetchers() []service.RateFetcher {
 	nbuFetcher := fetchers.NewNBURateFetcher()
 	currencyBeaconFetcher := fetchers.NewCurrencyBeaconFetcher(
 		appConfig.CurrencyBeaconAPIKey,
@@ -90,12 +90,12 @@ func InitFetchers() []service.RateFetcher {
 	return []service.RateFetcher{currencyBeaconFetcher, nbuFetcher}
 }
 
-func InitCron(transportConfig transportCfg.Config, fetcher service.RateFetcher) *cron.Manager {
+func NewCron(transportConfig transportCfg.Config, fetcher service.RateFetcher) *cron.Manager {
 	transportConfig.QueueName = appConfig.RateQueueName
 
 	producer, err := rateProducer.NewProducer(transportConfig)
 	if err != nil {
-		slog.Error("failed to initialize rate producer", slog.Any("error", err))
+		slog.Error("failed to create rate producer", slog.Any("error", err))
 		return nil
 	}
 
@@ -117,16 +117,16 @@ func main() {
 	}
 
 	appConfig = appCfg.NewFromEnv()
-	slog.SetDefault(InitLogger())
+	slog.SetDefault(NewLogger())
 
-	db, err := InitDatabase()
+	db, err := NewDatabase()
 	if err != nil {
-		slog.Error("failed to initialize database", slog.Any("error", err))
+		slog.Error("failed to create database", slog.Any("error", err))
 		panic(err)
 	}
 
 	// Initialize rate fetcher chain of responsibilities
-	rateService := service.NewRateService(InitFetchers()...)
+	rateService := service.NewRateService(NewFetchers()...)
 
 	transportConfig := transportCfg.NewFromEnv()
 
@@ -136,7 +136,7 @@ func main() {
 		QueueName: appConfig.UserQueueName,
 	})
 	if err != nil {
-		slog.Error("failed to initialize user producer", slog.Any("error", err))
+		slog.Error("failed to create user producer", slog.Any("error", err))
 		panic(err)
 	}
 	userRepo := models.NewUserRepository(db)
@@ -153,7 +153,7 @@ func main() {
 		UserRepo:    decoratedUserRepo,
 	}
 
-	cronManager := InitCron(transportConfig, rateService)
+	cronManager := NewCron(transportConfig, rateService)
 	if cronManager == nil {
 		slog.Error("failed to initialize cron manager")
 	} else {
