@@ -47,7 +47,6 @@ func TestSendEmail_InvalidPort(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
 			ctx := context.Background()
 			config := getDefaultConfig(tc.port)
 			gm := backends.NewGomailMailer(config)
