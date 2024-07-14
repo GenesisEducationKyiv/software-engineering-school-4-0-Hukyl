@@ -9,6 +9,13 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+const (
+	durable    = false
+	autoDelete = false
+	exclusive  = false
+	noWait     = false
+)
+
 func logAndWrap(msg string, err error) error {
 	slog.Error(msg, slog.Any("error", err))
 	return fmt.Errorf("%s: %w", msg, err)
@@ -64,11 +71,11 @@ func NewProducer(config config.Config) (*Producer, error) {
 	}
 	_, err = ch.QueueDeclare(
 		config.QueueName, // name
-		false,            // durable
-		false,            // delete when unused
-		false,            // exclusive
-		false,            // no-wait
-		nil,              // arguments
+		durable,
+		autoDelete,
+		exclusive,
+		noWait,
+		nil, // arguments
 	)
 	if err != nil {
 		return nil, logAndWrap("declaring queue", err)

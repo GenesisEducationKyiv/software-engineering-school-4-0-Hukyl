@@ -97,7 +97,7 @@ func NewRateConsumer(config transportCfg.Config, rateRepo *models.RateRepository
 		slog.Error("creating rate client", slog.Any("error", err))
 		return nil
 	}
-	rateConsumer.Subscribe(func( // nolint: errcheck
+	err = rateConsumer.Subscribe(func(
 		ctx context.Context,
 		from, to string, rate float32, time time.Time,
 	) error {
@@ -123,6 +123,9 @@ func NewRateConsumer(config transportCfg.Config, rateRepo *models.RateRepository
 		}
 		return nil
 	})
+	if err != nil {
+		slog.Error("subscribing to rate", slog.Any("error", err))
+	}
 	return rateConsumer
 }
 

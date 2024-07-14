@@ -106,7 +106,11 @@ func NewCron(transportConfig transportCfg.Config, fetcher service.RateFetcher) *
 	}
 
 	cronManager := cron.NewManager()
-	cronManager.AddJob(spec, job.Run) // nolint: errcheck
+	err = cronManager.AddJob(spec, job.Run)
+	if err != nil {
+		slog.Error("adding cron job", slog.Any("error", err))
+		return nil
+	}
 	return cronManager
 }
 

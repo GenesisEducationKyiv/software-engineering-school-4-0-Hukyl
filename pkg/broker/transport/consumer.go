@@ -8,6 +8,20 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+const (
+	queueDurable    = false
+	queueAutoDelete = false
+	queueExclusive  = false
+	queueNoWait     = false
+)
+
+const (
+	consumeAutoAck   = true
+	consumeNoLocal   = false
+	consumeExclusive = false
+	consumeNoWait    = false
+)
+
 var listenerAccess = sync.Mutex{}
 
 type Listener func([]byte) error
@@ -84,11 +98,11 @@ func NewConsumer(config config.Config) (*Consumer, error) {
 	}
 	q, err := ch.QueueDeclare(
 		config.QueueName, // name
-		false,            // durable
-		false,            // delete when unused
-		false,            // exclusive
-		false,            // no-wait
-		nil,              // arguments
+		queueDurable,
+		queueAutoDelete,
+		queueExclusive,
+		queueNoWait,
+		nil, // arguments
 	)
 	if err != nil {
 		return nil, logAndWrap("declaring queue", err)
@@ -96,11 +110,11 @@ func NewConsumer(config config.Config) (*Consumer, error) {
 	msgs, err := ch.Consume(
 		q.Name, // queue
 		"",     // consumer
-		true,   // auto-ack
-		false,  // exclusive
-		false,  // no-local
-		false,  // no-wait
-		nil,    // args
+		consumeAutoAck,
+		consumeExclusive,
+		consumeNoLocal,
+		consumeNoWait,
+		nil, // args
 	)
 	if err != nil {
 		return nil, logAndWrap("delivery creating", err)
