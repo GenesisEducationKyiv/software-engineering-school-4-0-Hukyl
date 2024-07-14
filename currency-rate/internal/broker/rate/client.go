@@ -49,11 +49,7 @@ func (m *Producer) SendRate(
 		Rate: rate,
 		Time: time.Now(),
 	})
-	slog.Info(
-		"producing rate message",
-		slog.Any("from", from), slog.Any("to", to),
-		slog.Any("rate", rate),
-	)
+	slog.Info("producing rate message", slog.Any("rate", rate))
 	msgBytes, err := m.marshal(data)
 	if err != nil {
 		return err
