@@ -14,8 +14,6 @@ import (
 	serverCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/service"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/database"
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/settings"
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -140,10 +138,4 @@ func TestUnsubscribeUser_Success(t *testing.T) {
 	exists, err := repo.Exists(user)
 	require.NoError(t, err)
 	assert.False(t, exists)
-}
-
-func TestMain(m *testing.M) {
-	gin.SetMode(gin.ReleaseMode)
-	_ = settings.InitSettings()
-	m.Run()
 }

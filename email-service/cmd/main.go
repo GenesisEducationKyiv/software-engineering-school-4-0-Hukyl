@@ -89,25 +89,26 @@ func NewRateConsumer(config transportCfg.Config, rateRepo *models.RateRepository
 
 func NewSubscriberConsumer(
 	config transportCfg.Config, subRepo *models.SubscriberRepository,
-) *subscriber.Client {
-	subConsumer, err := subscriber.NewClient(transportCfg.Config{
-		QueueName: appConfig.UserQueueName,
-		BrokerURI: config.BrokerURI,
-	})
+) *subscriber.CompensateClient {
+	eventHandler := handlers.NewSubscriberEvents(subRepo)
+
+	subConsumer, err := subscriber.NewCompensateClient(
+		transportCfg.Config{
+			QueueName: appConfig.UserQueueName,
+			BrokerURI: config.BrokerURI,
+		},
+		transportCfg.Config{
+			QueueName: appConfig.UserCompensateQueueName,
+			BrokerURI: config.BrokerURI,
+		},
+		eventHandler.Subscribe,
+		eventHandler.Unsubscribe,
+	)
 	if err != nil {
 		slog.Error("creating subscriber client", slog.Any("error", err))
 		return nil
 	}
-	eventHandler := handlers.NewSubscriberEvents(subRepo)
-	err = subConsumer.SubscribeCreate(eventHandler.Subscribe)
-	if err != nil {
-		slog.Error("subscribing to create", slog.Any("error", err))
-	}
 
-	err = subConsumer.SubscribeDelete(eventHandler.Unsubscribe)
-	if err != nil {
-		slog.Error("subscribing to delete", slog.Any("error", err))
-	}
 	return subConsumer
 }
 

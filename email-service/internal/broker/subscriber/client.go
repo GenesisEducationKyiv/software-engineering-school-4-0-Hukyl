@@ -52,12 +52,12 @@ func (c *Client) handleWithEvent(eventName string, f Handler) func([]byte) error
 	}
 }
 
-func (c *Client) SubscribeCreate(f Handler) error {
+func (c *Client) subscribeCreate(f Handler) error {
 	c.consumer.Subscribe(c.handleWithEvent(subscribedEventType, f))
 	return nil
 }
 
-func (c *Client) SubscribeDelete(f Handler) error {
+func (c *Client) subscribeDelete(f Handler) error {
 	c.consumer.Subscribe(c.handleWithEvent(unsubscribedEventType, f))
 	return nil
 }
@@ -75,12 +75,22 @@ func (c *Client) Close() error {
 	return c.consumer.Close()
 }
 
-func NewClient(config config.Config) (*Client, error) {
+func NewClient(config config.Config, subscribe Handler, unsubscribe Handler) (*Client, error) {
 	consumer, err := transport.NewConsumer(config)
 	if err != nil {
 		return nil, err
 	}
 	stopSignal := make(chan struct{})
+
+	client := &Client{consumer: consumer, stopSignal: stopSignal}
+
+	if err = client.subscribeCreate(subscribe); err != nil {
+		return nil, err
+	}
+	if err = client.subscribeDelete(unsubscribe); err != nil {
+		return nil, err
+	}
+
 	go consumer.Listen(stopSignal)
-	return &Client{consumer: consumer, stopSignal: stopSignal}, nil
+	return client, nil
 }

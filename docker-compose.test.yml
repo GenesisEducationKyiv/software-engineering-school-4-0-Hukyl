@@ -1,6 +1,6 @@
 services:
-  rabbitmq:
-    container_name: rabbitmq
+  rabbitmq-test:
+    container_name: rabbitmq-test
     image: rabbitmq:3.13.4-management
     ports:
       - "5672:5672"
@@ -17,8 +17,8 @@ services:
       timeout: 3s
       retries: 3
 
-  api-service:
-    container_name: api-service
+  api-service-test:
+    container_name: api-service-test
     build:
       context: ./currency-rate
       dockerfile: Dockerfile.test
@@ -27,8 +27,10 @@ services:
     volumes:
       - ./currency-rate:/go/src/github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate
     depends_on:
-      rabbitmq:
+      rabbitmq-test:
         condition: service_healthy
+    environment:
+      - BROKER_URI=amqp://rabbitmq:rabbitmq@rabbitmq-test:5672/
     env_file:
       - ./pkg/settings/.env.sample
-    command: go test -v -tags system ./...
+    command: go test -v -tags system -timeout 15s ./...

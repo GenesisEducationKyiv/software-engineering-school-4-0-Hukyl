@@ -1,15 +1,14 @@
 package main
 
 import (
-	"context"
 	"log/slog"
 	"os"
-	"time"
 
 	rateProducer "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/broker/rate"
-	userProducer "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/broker/user"
+	userBroker "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/broker/user"
 	appCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/config"
 	cronRate "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/cron/rate"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/handler"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/models"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/rate/fetchers"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server"
@@ -28,37 +27,6 @@ const (
 )
 
 var appConfig appCfg.Config
-
-const eventTimeout = 5 * time.Second
-
-type UserRepoDecorator struct {
-	*models.UserRepository
-	producer *userProducer.Producer
-}
-
-func (u *UserRepoDecorator) Create(user *models.User) error {
-	if err := u.UserRepository.Create(user); err != nil {
-		return err
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), eventTimeout)
-	defer cancel()
-	if err := u.producer.SendSubscribe(ctx, user.Email); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (u *UserRepoDecorator) Delete(user *models.User) error {
-	if err := u.UserRepository.Delete(user); err != nil {
-		return err
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), eventTimeout)
-	defer cancel()
-	if err := u.producer.SendUnsubscribe(ctx, user.Email); err != nil {
-		return err
-	}
-	return nil
-}
 
 func NewDatabase() (*database.DB, error) {
 	db, err := database.New(dbCfg.NewFromEnv())
@@ -117,7 +85,6 @@ func NewCron(transportConfig transportCfg.Config, fetcher service.RateFetcher) *
 func main() {
 	if err := settings.InitSettings(); err != nil {
 		slog.Error("failed to initialize settings", slog.Any("error", err))
-		// panic(err)
 	}
 
 	appConfig = appCfg.NewFromEnv()
@@ -133,9 +100,8 @@ func main() {
 	rateService := service.NewRateService(NewFetchers()...)
 
 	transportConfig := transportCfg.NewFromEnv()
-
 	// Initializer user event producer
-	userProducer, err := userProducer.NewProducer(transportCfg.Config{
+	userProducer, err := userBroker.NewProducer(transportCfg.Config{
 		BrokerURI: transportConfig.BrokerURI,
 		QueueName: appConfig.UserQueueName,
 	})
@@ -143,13 +109,18 @@ func main() {
 		slog.Error("failed to create user producer", slog.Any("error", err))
 		panic(err)
 	}
+	userConsumer, err := userBroker.NewConsumer(transportCfg.Config{
+		BrokerURI: transportConfig.BrokerURI,
+		QueueName: appConfig.UserCompensateQueueName,
+	})
+	if err != nil {
+		slog.Error("failed to create user consumer", slog.Any("error", err))
+		panic(err)
+	}
 	userRepo := models.NewUserRepository(db)
 
 	// Decorate userRepo with userProducer
-	decoratedUserRepo := &UserRepoDecorator{
-		UserRepository: userRepo,
-		producer:       userProducer,
-	}
+	decoratedUserRepo := handler.NewUserRepositorySaga(userRepo, userProducer, userConsumer)
 
 	apiClient := server.Client{
 		Config:      serverCfg.NewFromEnv(),

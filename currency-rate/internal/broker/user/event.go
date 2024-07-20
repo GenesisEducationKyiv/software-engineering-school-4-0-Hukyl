@@ -1,10 +1,18 @@
 package user
 
-import "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker"
+import (
+	"time"
+
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker"
+)
+
+const subTimeout = 5 * time.Second
 
 const (
-	subscribedEventType   = "Subscribe"
-	unsubscribedEventType = "Unsubscribe"
+	subscribedEventType             = "Subscribe"
+	unsubscribedEventType           = "Unsubscribe"
+	compensateSubscribedEventType   = "CompensateSubscribe"
+	compensateUnsubscribedEventType = "CompensateUnsubscribe"
 )
 
 type subscriberData struct {

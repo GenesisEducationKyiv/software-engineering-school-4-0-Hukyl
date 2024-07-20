@@ -6,10 +6,11 @@ import (
 )
 
 type Config struct {
-	Debug                bool
-	NotificationCropSpec string
-	RateQueueName        string
-	UserQueueName        string
+	Debug                   bool
+	NotificationCropSpec    string
+	RateQueueName           string
+	UserQueueName           string
+	UserCompensateQueueName string
 }
 
 func getOrError(key string) string {
@@ -22,9 +23,10 @@ func getOrError(key string) string {
 
 func NewFromEnv() Config {
 	return Config{
-		Debug:                getOrError("DEBUG") == "true",
-		NotificationCropSpec: getOrError("NOTIFICATION_CRON_SPEC"),
-		RateQueueName:        getOrError("RATE_QUEUE_NAME"),
-		UserQueueName:        getOrError("USER_QUEUE_NAME"),
+		Debug:                   getOrError("DEBUG") == "true",
+		NotificationCropSpec:    getOrError("NOTIFICATION_CRON_SPEC"),
+		RateQueueName:           getOrError("RATE_QUEUE_NAME"),
+		UserQueueName:           getOrError("USER_QUEUE_NAME"),
+		UserCompensateQueueName: getOrError("USER_COMPENSATE_QUEUE_NAME"),
 	}
 }
