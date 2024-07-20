@@ -27,7 +27,7 @@ func TestRateEvents_SaveRate(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	repo := new(rateRepositoryMock)
-	repo.On("Create", mock.AnythingOfType("*models.Rate")).Return(nil)
+	repo.On("Create", mock.Anything).Return(nil)
 	rateEvents := handlers.NewRateEvents(repo)
 	// Act
 	err := rateEvents.SaveRate(ctx, "USD", "UAH", 27.5, time.Now())
