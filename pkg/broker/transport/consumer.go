@@ -22,16 +22,15 @@ const (
 	consumeNoWait    = false
 )
 
-var listenerAccess = sync.Mutex{}
-
 type Listener func([]byte) error
 
 type Consumer struct {
-	config    config.Config
-	conn      *amqp.Connection
-	channel   *amqp.Channel
-	messages  <-chan amqp.Delivery
-	listeners []Listener
+	config         config.Config
+	conn           *amqp.Connection
+	channel        *amqp.Channel
+	messages       <-chan amqp.Delivery
+	listeners      []Listener
+	listenerAccess *sync.Mutex
 }
 
 func (c *Consumer) Subscribe(f Listener) {
@@ -40,14 +39,14 @@ func (c *Consumer) Subscribe(f Listener) {
 		slog.Any("listener", f),
 		slog.Any("totalListeners", len(c.listeners)+1),
 	)
-	listenerAccess.Lock()
-	defer listenerAccess.Unlock()
+	c.listenerAccess.Lock()
+	defer c.listenerAccess.Unlock()
 	c.listeners = append(c.listeners, f)
 }
 
 func (c *Consumer) deliverMessage(msg amqp.Delivery) {
-	listenerAccess.Lock()
-	defer listenerAccess.Unlock()
+	c.listenerAccess.Lock()
+	defer c.listenerAccess.Unlock()
 	for _, listener := range c.listeners {
 		err := listener(msg.Body)
 		if err != nil {
@@ -121,10 +120,11 @@ func NewConsumer(config config.Config) (*Consumer, error) {
 	}
 
 	return &Consumer{
-		config:    config,
-		conn:      conn,
-		channel:   ch,
-		messages:  msgs,
-		listeners: make([]Listener, 0),
+		config:         config,
+		conn:           conn,
+		channel:        ch,
+		messages:       msgs,
+		listeners:      make([]Listener, 0),
+		listenerAccess: &sync.Mutex{},
 	}, nil
 }
