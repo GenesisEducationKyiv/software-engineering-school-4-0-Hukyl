@@ -44,7 +44,7 @@ func TestSendEmail_InvalidPort(t *testing.T) {
 				SMTPUser:     "user",
 				SMTPPassword: "password",
 			})
-			err := gm.SendEmail(ctx, "example2@gmail.com", "subject", "message")
+			err := gm.SendEmail(ctx, []string{"example2@gmail.com"}, "subject", "message")
 			if tc.expectError {
 				assert.Error(t, err)
 				return
@@ -55,25 +55,50 @@ func TestSendEmail_InvalidPort(t *testing.T) {
 }
 
 func TestSendEmail_Success(t *testing.T) {
-	smtpServer := mail.MockSMTPServer(t)
-	ctx := context.Background()
-	gm := backends.NewGomailMailer(config.Config{
-		FromEmail:    "example@gmail.com",
-		SMTPHost:     mail.Localhost,
-		SMTPPort:     strconv.Itoa(smtpServer.PortNumber()),
-		SMTPUser:     "user",
-		SMTPPassword: "password",
-	})
-	err := gm.SendEmail(ctx, "example2@gmail.com", "subject", "message")
-	require.NoError(t, err)
-	assert.Len(t, smtpServer.Messages(), 1)
+	testCases := []struct {
+		name        string
+		toEmails    []string
+		expectError bool
+	}{
+		{
+			name:        "single",
+			toEmails:    []string{"example2@gmail.com"},
+			expectError: false,
+		},
+		{
+			name:        "multiple",
+			toEmails:    []string{"example2@gmail.com", "example3@gmail.com", "example4@gmail.com"},
+			expectError: false,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			smtpServer := mail.MockSMTPServer(t)
+			ctx := context.Background()
+			gm := backends.NewGomailMailer(config.Config{
+				FromEmail:    "example@gmail.com",
+				SMTPHost:     mail.Localhost,
+				SMTPPort:     strconv.Itoa(smtpServer.PortNumber()),
+				SMTPUser:     "user",
+				SMTPPassword: "password",
+			})
+			err := gm.SendEmail(ctx, tc.toEmails, "subject", "message")
+			if tc.expectError {
+				assert.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			messages := smtpServer.Messages()
+			assert.Len(t, messages, 1)
+		})
+	}
 }
 
 func TestVariousParameters(t *testing.T) {
 	testCases := []struct {
 		name        string
 		fromEmail   string
-		toEmail     string
+		toEmails    []string
 		subject     string
 		message     string
 		expectError bool
@@ -81,7 +106,15 @@ func TestVariousParameters(t *testing.T) {
 		{
 			name:        "valid",
 			fromEmail:   "example@gmail.com",
-			toEmail:     "example2@gmail.com",
+			toEmails:    []string{"example2@gmail.com"},
+			subject:     "subject",
+			message:     "message",
+			expectError: false,
+		},
+		{
+			name:        "valid-multiple",
+			fromEmail:   "example@gmail.com",
+			toEmails:    []string{"example2@gmail.com", "example3@gmail.com"},
 			subject:     "subject",
 			message:     "message",
 			expectError: false,
@@ -89,7 +122,7 @@ func TestVariousParameters(t *testing.T) {
 		{
 			name:        "invalid from email",
 			fromEmail:   "example",
-			toEmail:     "example@gmail.com",
+			toEmails:    []string{"example@gmail.com"},
 			subject:     "subject",
 			message:     "message",
 			expectError: true,
@@ -97,7 +130,7 @@ func TestVariousParameters(t *testing.T) {
 		{
 			name:        "invalid to email",
 			fromEmail:   "example@gmail.com",
-			toEmail:     "example",
+			toEmails:    []string{"example"},
 			subject:     "subject",
 			message:     "message",
 			expectError: true,
@@ -105,7 +138,7 @@ func TestVariousParameters(t *testing.T) {
 		{
 			name:        "empty message",
 			fromEmail:   "example@gmail.com",
-			toEmail:     "example2@gmail.com",
+			toEmails:    []string{"example2@gmail.com"},
 			subject:     "",
 			message:     "",
 			expectError: false,
@@ -113,7 +146,7 @@ func TestVariousParameters(t *testing.T) {
 		{
 			name:        "empty subject",
 			fromEmail:   "example@gmail.com",
-			toEmail:     "example2@gmail.com",
+			toEmails:    []string{"example2@gmail.com"},
 			subject:     "",
 			message:     "message",
 			expectError: false,
@@ -130,7 +163,7 @@ func TestVariousParameters(t *testing.T) {
 				SMTPUser:     "user",
 				SMTPPassword: "password",
 			})
-			err := gm.SendEmail(ctx, tc.toEmail, tc.subject, tc.message)
+			err := gm.SendEmail(ctx, tc.toEmails, tc.subject, tc.message)
 			if tc.expectError {
 				assert.Error(t, err)
 				return

@@ -11,11 +11,14 @@ type ConsoleMailer struct {
 	config config.Config
 }
 
-func (cm *ConsoleMailer) SendEmail(_ context.Context, email, subject, message string) error {
+func (cm *ConsoleMailer) SendEmail(
+	_ context.Context, emails []string,
+	subject, message string,
+) error {
 	slog.Info(
 		"sending email",
 		slog.Any("fromEmail", cm.config.FromEmail),
-		slog.Any("toEmail", email),
+		slog.Any("toEmails", emails),
 		slog.Any("subject", subject),
 		slog.Any("message", message),
 	)

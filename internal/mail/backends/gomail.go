@@ -2,6 +2,7 @@ package backends
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -13,10 +14,17 @@ type GomailMailer struct {
 	config config.Config
 }
 
-func (gm *GomailMailer) SendEmail(_ context.Context, email, subject, message string) error {
+func (gm *GomailMailer) SendEmail(
+	_ context.Context, emails []string,
+	subject, message string,
+) error {
 	mail := gomail.NewMessage()
 	mail.SetHeader("From", gm.config.FromEmail)
-	mail.SetHeader("To", email)
+	if len(emails) == 0 {
+		return errors.New("no email recipients")
+	}
+	mail.SetHeader("To", emails[0])
+	mail.SetHeader("Bcc", emails[1:]...)
 	mail.SetHeader("Subject", subject)
 	mail.SetBody("text/html", message)
 

@@ -59,7 +59,7 @@ func InitFetchers() fetchers.RateFetcher {
 func main() {
 	if err := settings.InitSettings(); err != nil {
 		slog.Error("failed to initialize settings", slog.Any("error", err))
-		panic(err)
+		// panic(err)
 	}
 
 	debug := os.Getenv("DEBUG") == "true"
