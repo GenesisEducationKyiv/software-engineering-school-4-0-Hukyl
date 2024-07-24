@@ -8,6 +8,15 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+var logger *slog.Logger
+
+func getLogger() *slog.Logger {
+	if logger == nil {
+		logger = slog.Default().With(slog.Any("src", "transport"))
+	}
+	return logger
+}
+
 const (
 	queueDurable    = false
 	queueAutoDelete = false
@@ -34,7 +43,7 @@ type Consumer struct {
 }
 
 func (c *Consumer) Subscribe(f Listener) {
-	slog.Info(
+	getLogger().Info(
 		"adding subscriber",
 		slog.Any("listener", f),
 		slog.Any("totalListeners", len(c.listeners)+1),
@@ -48,14 +57,17 @@ func (c *Consumer) deliverMessage(msg amqp.Delivery) {
 	c.listenerAccess.Lock()
 	defer c.listenerAccess.Unlock()
 	for _, listener := range c.listeners {
+		getLogger().Debug("delivering message", slog.Any("listener", listener))
 		err := listener(msg.Body)
 		if err != nil {
-			slog.Error(
+			getLogger().Error(
 				"error delivering message",
 				slog.Any("error", err),
 				slog.Any("listener", listener),
 			)
+			continue
 		}
+		getLogger().Debug("message delivered", slog.Any("listener", listener))
 	}
 }
 
@@ -63,9 +75,11 @@ func (c *Consumer) Listen(stop <-chan struct{}) {
 	for {
 		select {
 		case <-stop:
+			getLogger().Info("received stop signal")
 			return
 		case msg, ok := <-c.messages:
 			if !ok {
+				getLogger().Error("failed to receive message")
 				return
 			}
 			slog.Info("received message", slog.Any("queue", c.config.QueueName))
@@ -76,9 +90,11 @@ func (c *Consumer) Listen(stop <-chan struct{}) {
 
 func (c *Consumer) Close() error {
 	slog.Info("closing consumer", slog.Any("queue", c.config.QueueName))
+	getLogger().Debug("closing channel")
 	if err := c.channel.Close(); err != nil {
 		return logAndWrap("closing channel", err)
 	}
+	getLogger().Debug("closing connection")
 	if err := c.conn.Close(); err != nil {
 		return logAndWrap("closing connection", err)
 	}
@@ -86,7 +102,7 @@ func (c *Consumer) Close() error {
 }
 
 func NewConsumer(config config.Config) (*Consumer, error) {
-	slog.Info("creating consumer", slog.Any("config", config))
+	getLogger().Info("creating consumer", slog.Any("config", config))
 	conn, err := amqp.Dial(config.BrokerURI)
 	if err != nil {
 		return nil, logAndWrap("dialing amqp", err)

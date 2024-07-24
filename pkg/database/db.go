@@ -11,6 +11,15 @@ import (
 	"gorm.io/gorm"
 )
 
+var logger *slog.Logger
+
+func getLogger() *slog.Logger {
+	if logger == nil {
+		logger = slog.Default().With(slog.Any("src", "database"))
+	}
+	return logger
+}
+
 type DB struct {
 	Config config.Config
 	conn   *gorm.DB
@@ -18,6 +27,7 @@ type DB struct {
 
 func openConnection(service, dsn string) (gorm.Dialector, error) {
 	var open func(string) gorm.Dialector
+	getLogger().Debug("opening connection to db", slog.Any("databaseService", service))
 	switch service {
 	case "sqlite":
 		open = sqlite.Open
@@ -26,12 +36,14 @@ func openConnection(service, dsn string) (gorm.Dialector, error) {
 	default:
 		return nil, errors.New("unknown database service")
 	}
+	getLogger().Debug("connection opened")
 	return open(dsn), nil
 }
 
 func (d *DB) Connection() *gorm.DB {
 	config := d.Config
 	if d.conn != nil {
+		getLogger().Debug("returning existing connection")
 		return d.conn
 	}
 	dialect, err := openConnection(
@@ -39,25 +51,27 @@ func (d *DB) Connection() *gorm.DB {
 		config.DatabaseDSN,
 	)
 	if err != nil {
-		slog.Error(
+		getLogger().Error(
 			"unknown database service",
 			slog.Any("databaseService", config.DatabaseService),
 		)
 		return nil
 	} else if dialect == nil {
-		slog.Error(
+		getLogger().Error(
 			"failed to open connection to database",
 			slog.Any("databaseService", config.DatabaseService),
 		)
 		return nil
 	}
+	getLogger().Debug("connection opened successfully")
 	conn, err := gorm.Open(dialect, &gorm.Config{})
 	if err != nil {
-		slog.Error("failed to connect to database", slog.Any("error", err))
+		getLogger().Error("failed to connect to database", slog.Any("error", err))
 		return nil
 	}
+	getLogger().Debug("gorm connection established")
 	d.conn = conn
-	slog.Info(
+	getLogger().Info(
 		"opening connection to db",
 		slog.Any("databaseService", config.DatabaseService),
 		slog.Any("databaseDSN", config.DatabaseDSN),
@@ -67,10 +81,16 @@ func (d *DB) Connection() *gorm.DB {
 
 func (d *DB) Init() error {
 	// Initialize first connection with the database
+	getLogger().Debug("initializing connection")
 	conn := d.Connection()
 	if conn == nil {
+		getLogger().Error(
+			"opening connection to db",
+			slog.Any("error", "failed to connect to database"),
+		)
 		return errors.New("failed to connect to database")
 	}
+	getLogger().Debug("connection initialized")
 	return nil
 }
 
@@ -82,13 +102,14 @@ func (d *DB) Migrate(models ...any) error {
 	for _, m := range models {
 		err := conn.AutoMigrate(m)
 		if err != nil {
-			slog.Error(
+			getLogger().Error(
 				"failed to migrate",
 				slog.Any("error", err),
 				slog.Any("model", m),
 			)
 			return fmt.Errorf("failed to migrate %s: %w", m, err)
 		}
+		getLogger().Debug("migrated", slog.Any("model", m))
 	}
 	return nil
 }
@@ -97,16 +118,16 @@ func (d *DB) Close() error {
 	if d.conn == nil {
 		return nil
 	}
+	getLogger().Info("closing connection to db")
 	sqlDB, err := d.conn.DB()
 	if err != nil {
-		slog.Error("closing database connection", slog.Any("error", err))
+		getLogger().Error("closing database connection", slog.Any("error", err))
 		return fmt.Errorf("get db connection error: %w", err)
 	}
 	if err = sqlDB.Close(); err != nil {
-		slog.Error("closing database connection", slog.Any("error", err))
+		getLogger().Error("closing database connection", slog.Any("error", err))
 		return fmt.Errorf("failed to close connection to database: %w", err)
 	}
-	slog.Info("closing connection to db")
 	return nil
 }
 

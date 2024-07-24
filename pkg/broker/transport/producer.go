@@ -17,7 +17,7 @@ const (
 )
 
 func logAndWrap(msg string, err error) error {
-	slog.Error(msg, slog.Any("error", err))
+	getLogger().Error(msg, slog.Any("error", err))
 	return fmt.Errorf("%s: %w", msg, err)
 }
 
@@ -28,10 +28,12 @@ type Producer struct {
 }
 
 func (p *Producer) Close() error {
-	slog.Info("closing producer", slog.Any("queue", p.config.QueueName))
+	getLogger().Info("closing producer", slog.Any("queue", p.config.QueueName))
+	getLogger().Debug("closing channel")
 	if err := p.channel.Close(); err != nil {
 		return logAndWrap("closing channel", err)
 	}
+	getLogger().Debug("closing connection")
 	if err := p.conn.Close(); err != nil {
 		return logAndWrap("closing connection", err)
 	}
@@ -48,7 +50,7 @@ func (p *Producer) Produce(ctx context.Context, msg []byte) error {
 			ContentType: "application/json",
 			Body:        []byte(msg),
 		})
-	slog.Info(
+	getLogger().Info(
 		"publishing message",
 		slog.Any("queueName", p.config.QueueName),
 		slog.Any("error", err),
@@ -60,7 +62,7 @@ func (p *Producer) Produce(ctx context.Context, msg []byte) error {
 }
 
 func NewProducer(config config.Config) (*Producer, error) {
-	slog.Info("creating producer", slog.Any("config", config))
+	getLogger().Info("creating producer", slog.Any("config", config))
 	conn, err := amqp.Dial(config.BrokerURI)
 	if err != nil {
 		return nil, logAndWrap("dialing broker", err)
