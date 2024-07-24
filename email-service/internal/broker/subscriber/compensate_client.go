@@ -81,6 +81,7 @@ func (c *CompensateClient) marshal(event SubscribeEvent) ([]byte, error) {
 }
 
 func (c *CompensateClient) compensate(event SubscribeEvent) {
+	getLogger().Info("compensating", slog.Any("eventName", event.Type))
 	eventBytes, err := c.marshal(event)
 	if err != nil {
 		slog.Error("compensating", slog.Any("error", err))
@@ -104,6 +105,7 @@ func NewCompensateClient(
 	client := &Client{consumer: consumer, stopSignal: stopSignal}
 	producer, err := transport.NewProducer(compensateConfig)
 	if err != nil {
+		getLogger().Error("creating producer", slog.Any("error", err))
 		return nil, err
 	}
 	compensateClient := &CompensateClient{Client: *client, producer: producer}
@@ -114,6 +116,7 @@ func NewCompensateClient(
 	if err = compensateClient.subscribeDelete(unsubscribe); err != nil {
 		return nil, err
 	}
+	getLogger().Debug("new subscriber consumer with compensation created")
 
 	go consumer.Listen(stopSignal)
 	return compensateClient, nil

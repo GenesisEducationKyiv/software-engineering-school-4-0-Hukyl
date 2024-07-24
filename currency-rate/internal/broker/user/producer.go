@@ -15,6 +15,15 @@ import (
 
 var lastEventID int
 
+var producerLogger *slog.Logger
+
+func getProducerLogger() *slog.Logger {
+	if producerLogger == nil {
+		producerLogger = slog.Default().With(slog.Any("src", "userProducer"))
+	}
+	return producerLogger
+}
+
 type Producer struct {
 	producer *transport.Producer
 }
@@ -45,7 +54,7 @@ func (p *Producer) sendEvent(
 	data subscriberData,
 ) error {
 	event := p.createEvent(eventName, data)
-	slog.Info(
+	getProducerLogger().Info(
 		"producing user event",
 		slog.Any("event", eventName),
 	)

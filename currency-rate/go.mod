@@ -3,7 +3,7 @@ module github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/cur
 go 1.22.4
 
 require (
-	github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl v0.0.0-20240720165322-e650d692f1db
+	github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl v0.0.0-20240724220305-7aa950741432
 	github.com/ericchiang/css v1.3.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/stretchr/testify v1.9.0

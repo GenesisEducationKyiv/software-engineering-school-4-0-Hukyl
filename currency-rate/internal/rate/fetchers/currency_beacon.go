@@ -37,14 +37,14 @@ func (c *CurrencyBeaconFetcher) SupportedCurrencies(ctx context.Context) []strin
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, supportedCurrenciesURL, nil)
 	if err != nil {
-		slog.Error(
+		getLogger().Error(
 			"creating request",
 			slog.String("fetcher", fmt.Sprint(c)), slog.Any("error", err),
 		)
 		return nil
 	}
 	response, err := http.DefaultClient.Do(req)
-	slog.Info(
+	getLogger().Info(
 		"fetching supported currencies",
 		slog.String("fetcher", fmt.Sprint(c)), slog.Any("error", err),
 	)
@@ -55,7 +55,7 @@ func (c *CurrencyBeaconFetcher) SupportedCurrencies(ctx context.Context) []strin
 	sel, _ := css.Parse(cssSelector)
 	node, err := html.Parse(response.Body)
 	if err != nil {
-		slog.Error(
+		getLogger().Error(
 			"parsing html",
 			slog.String("fetcher", fmt.Sprint(c)), slog.Any("error", err),
 		)
@@ -82,6 +82,11 @@ func (c *CurrencyBeaconFetcher) fetchRate(
 		return rate.Rate{}, err
 	}
 	defer resp.Body.Close()
+	getLogger().Debug(
+		"fetched rate",
+		slog.String("url", formattedURL),
+		slog.Any("status", resp.Status),
+	)
 	if resp.StatusCode != http.StatusOK {
 		return rate.Rate{}, fmt.Errorf("fetching url: %s", resp.Status)
 	}
@@ -93,12 +98,14 @@ func (c *CurrencyBeaconFetcher) fetchRate(
 	if !ok {
 		return rate.Rate{}, errors.New("rate not found")
 	}
-	return rate.Rate{
+	rate := rate.Rate{
 		CurrencyFrom: ccFrom,
 		CurrencyTo:   ccTo,
 		Rate:         value,
 		Time:         time.Now(),
-	}, nil
+	}
+	getLogger().Debug("rate fetched", slog.Any("rate", rate))
+	return rate, nil
 }
 
 func (c *CurrencyBeaconFetcher) FetchRate(
@@ -107,7 +114,7 @@ func (c *CurrencyBeaconFetcher) FetchRate(
 	supportedCurrencies := c.SupportedCurrencies(ctx)
 	if supportedCurrencies == nil {
 		err := errors.New("failed to fetch supported currencies")
-		slog.Info(
+		getLogger().Info(
 			"fetching rate",
 			slog.String("fetcher", fmt.Sprint(c)),
 			slog.Any("error", err),
@@ -121,7 +128,7 @@ func (c *CurrencyBeaconFetcher) FetchRate(
 		return rate.Rate{}, fmt.Errorf("unsupported currency: %s", ccTo)
 	}
 	result, err := c.fetchRate(ctx, ccFrom, ccTo)
-	slog.Info(
+	getLogger().Info(
 		"fetched rate",
 		slog.String("fetcher", fmt.Sprint(c)),
 		slog.Any("rate", result),

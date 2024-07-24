@@ -32,11 +32,14 @@ const emailTimeout = 5 * time.Second
 var appConfig appCfg.Config
 
 func NewDatabase() (*database.DB, error) {
+	slog.Debug("creating database")
 	db, err := database.New(dbCfg.NewFromEnv())
 	if err != nil {
 		return nil, err
 	}
-	if err := db.Migrate(&models.Rate{}, &models.Subscriber{}); err != nil {
+	m := []interface{}{&models.Rate{}, &models.Subscriber{}}
+	slog.Debug("migrating models", slog.Any("models", m))
+	if err := db.Migrate(m...); err != nil {
 		return nil, err
 	}
 	return db, nil
@@ -48,6 +51,7 @@ func NewNotificationsCron(db *database.DB, mailer notifications.EmailClient) *cr
 	if spec == "" {
 		spec = defaultCronSpec
 	}
+	slog.Info("notifications cron spec", slog.Any("spec", spec))
 
 	notifier := notifications.NewMailNotifier(
 		mailer,
@@ -57,6 +61,7 @@ func NewNotificationsCron(db *database.DB, mailer notifications.EmailClient) *cr
 	)
 
 	notifyF := func() error {
+		slog.Info("sending notifications job")
 		ctx, cancel := context.WithTimeout(context.Background(), emailTimeout)
 		defer cancel()
 		return notifier.Notify(ctx)
@@ -79,11 +84,13 @@ func NewRateConsumer(config transportCfg.Config, rateRepo *models.RateRepository
 		slog.Error("creating rate client", slog.Any("error", err))
 		return nil
 	}
+	slog.Debug("new rate consumer created")
 	eventHandler := handlers.NewRateEvents(rateRepo)
 	err = rateConsumer.Subscribe(eventHandler.SaveRate)
 	if err != nil {
 		slog.Error("subscribing to rate", slog.Any("error", err))
 	}
+	slog.Debug("subscribed to rate events")
 	return rateConsumer
 }
 
@@ -108,7 +115,7 @@ func NewSubscriberConsumer(
 		slog.Error("creating subscriber client", slog.Any("error", err))
 		return nil
 	}
-
+	slog.Debug("new subscriber consumer with compensation created")
 	return subConsumer
 }
 
@@ -152,6 +159,7 @@ func main() {
 		mailer = backends.NewGomailMailer(mailConfig)
 	}
 	mailClient := mail.NewClient(mailer)
+	slog.Debug("mail client created")
 
 	// Initialize cron manager for notifications
 	cronManager := NewNotificationsCron(db, mailClient)
@@ -173,9 +181,11 @@ func main() {
 	}
 	defer subConsumer.Close()
 
+	slog.Info("waiting for termination signal")
 	termChannel := make(chan os.Signal, 1)
 	signal.Notify(termChannel, syscall.SIGINT)
 	signal.Notify(termChannel, syscall.SIGTERM)
 	<-termChannel
+	slog.Info("termination signal received, gracefully closing")
 	// Gracefully close the client
 }

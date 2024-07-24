@@ -17,15 +17,19 @@ func doWithContext(ctx context.Context, f func() error) error {
 	go func() {
 		defer close(done)
 		if err := f(); err != nil {
-			slog.Error("error", slog.Any("error", err))
+			getLogger().Error("error", slog.Any("error", err))
 		}
+		getLogger().Debug("function done", slog.Any("function", f))
 	}()
 
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			err := ctx.Err()
+			getLogger().Error("context done", slog.Any("error", err))
+			return err
 		case <-done:
+			getLogger().Debug("done")
 			return nil
 		}
 	}
@@ -39,7 +43,7 @@ func (s *RateEvents) SaveRate(
 	ctx context.Context,
 	from, to string, value float32, time time.Time,
 ) error {
-	slog.Info(
+	getLogger().Info(
 		"rate fetched",
 		slog.Any("from", from),
 		slog.Any("to", to),
@@ -56,9 +60,10 @@ func (s *RateEvents) SaveRate(
 		return s.repo.Create(rate)
 	})
 	if err != nil {
-		slog.Error("saving rate", slog.Any("error", err))
+		getLogger().Error("saving rate", slog.Any("error", err))
 		return err
 	}
+	getLogger().Debug("rate saved")
 	return nil
 }
 

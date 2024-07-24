@@ -10,6 +10,15 @@ import (
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker/transport/config"
 )
 
+var consumerLogger *slog.Logger
+
+func getConsumerLogger() *slog.Logger {
+	if consumerLogger == nil {
+		consumerLogger = slog.Default().With(slog.Any("src", "userConsumer"))
+	}
+	return consumerLogger
+}
+
 type Consumer struct {
 	consumer   *transport.Consumer
 	stopSignal chan struct{}
@@ -27,6 +36,7 @@ func (c *Consumer) unmarshal(b []byte) (subscribeEvent, error) {
 
 func (c *Consumer) handleWithEvent(eventName string, f Handler) func([]byte) error {
 	return func(b []byte) error {
+		getConsumerLogger().Debug("received message")
 		ctx, cancel := context.WithTimeout(context.Background(), subTimeout)
 		defer cancel()
 		event, err := c.unmarshal(b)
@@ -36,7 +46,7 @@ func (c *Consumer) handleWithEvent(eventName string, f Handler) func([]byte) err
 		if event.Event.Type != eventName {
 			return nil
 		}
-		slog.Info(
+		getConsumerLogger().Info(
 			"delivering message",
 			slog.Any("listener", f),
 			slog.Any("eventName", event.Event.Type),
@@ -46,16 +56,25 @@ func (c *Consumer) handleWithEvent(eventName string, f Handler) func([]byte) err
 }
 
 func (c *Consumer) ListenSubscribeCompensate(f Handler) error {
+	getConsumerLogger().Debug(
+		"subscribing to subscribe compensate event",
+		slog.Any("listener", f),
+	)
 	c.consumer.Subscribe(c.handleWithEvent(compensateSubscribedEventType, f))
 	return nil
 }
 
 func (c *Consumer) ListenUnsubscribeCompensate(f Handler) error {
+	getConsumerLogger().Debug(
+		"subscribing to unsubscribe compensate event",
+		slog.Any("listener", f),
+	)
 	c.consumer.Subscribe(c.handleWithEvent(compensateUnsubscribedEventType, f))
 	return nil
 }
 
 func (c *Consumer) Close() error {
+	slog.Debug("closing consumer")
 	close(c.stopSignal)
 	return c.consumer.Close()
 }

@@ -11,6 +11,15 @@ import (
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker/transport/config"
 )
 
+var logger *slog.Logger
+
+func getLogger() *slog.Logger {
+	if logger == nil {
+		logger = slog.Default().With(slog.Any("src", "subscriberClient"))
+	}
+	return logger
+}
+
 var subTimeout = 5 * time.Second
 
 type Handler func(ctx context.Context, email string) error
@@ -33,7 +42,12 @@ type Client struct {
 }
 
 func (c *Client) handleWithEvent(eventName string, f Handler) func([]byte) error {
+	getLogger().Debug(
+		"subscribing to subscriber event",
+		slog.Any("handler", f), slog.Any("eventName", eventName),
+	)
 	return func(b []byte) error {
+		getLogger().Debug("received message", slog.Any("handler", f))
 		ctx, cancel := context.WithTimeout(context.Background(), subTimeout)
 		defer cancel()
 		event, err := c.unmarshal(b)
@@ -71,6 +85,7 @@ func (c *Client) unmarshal(data []byte) (*SubscribeEvent, error) {
 }
 
 func (c *Client) Close() error {
+	getLogger().Info("closing subscriber client")
 	close(c.stopSignal)
 	return c.consumer.Close()
 }
@@ -90,6 +105,7 @@ func NewClient(config config.Config, subscribe Handler, unsubscribe Handler) (*C
 	if err = client.subscribeDelete(unsubscribe); err != nil {
 		return nil, err
 	}
+	getLogger().Debug("new subscriber consumer created")
 
 	go consumer.Listen(stopSignal)
 	return client, nil

@@ -36,6 +36,7 @@ func NewDatabase() (*database.DB, error) {
 	if err := db.Migrate(&models.User{}); err != nil {
 		return nil, err
 	}
+	slog.Debug("database created")
 	return db, nil
 }
 
@@ -55,7 +56,9 @@ func NewFetchers() []service.RateFetcher {
 	currencyBeaconFetcher := fetchers.NewCurrencyBeaconFetcher(
 		appConfig.CurrencyBeaconAPIKey,
 	)
-	return []service.RateFetcher{currencyBeaconFetcher, nbuFetcher}
+	fetchers := []service.RateFetcher{currencyBeaconFetcher, nbuFetcher}
+	slog.Debug("fetchers initialized", slog.Any("fetchers", fetchers))
+	return fetchers
 }
 
 func NewCron(transportConfig transportCfg.Config, fetcher service.RateFetcher) *cron.Manager {
@@ -66,12 +69,14 @@ func NewCron(transportConfig transportCfg.Config, fetcher service.RateFetcher) *
 		slog.Error("failed to create rate producer", slog.Any("error", err))
 		return nil
 	}
+	slog.Debug("rate producer created")
 
 	job := cronRate.NewCronJob(fetcher, producer, ccFrom, ccTo)
-	spec := appConfig.RateRefreshCropSpec
+	spec := appConfig.RateRefreshCronSpec
 	if spec == "" {
 		spec = "@every 5m"
 	}
+	slog.Debug("cron job spec", slog.Any("spec", spec))
 
 	cronManager := cron.NewManager()
 	err = cronManager.AddJob(spec, job.Run)
@@ -86,15 +91,16 @@ func main() {
 	if err := settings.InitSettings(); err != nil {
 		slog.Error("failed to initialize settings", slog.Any("error", err))
 	}
-
 	appConfig = appCfg.NewFromEnv()
 	slog.SetDefault(NewLogger())
+	slog.Debug("settings initialized")
 
 	db, err := NewDatabase()
 	if err != nil {
 		slog.Error("failed to create database", slog.Any("error", err))
 		panic(err)
 	}
+	defer db.Close()
 
 	// Initialize rate fetcher chain of responsibilities
 	rateService := service.NewRateService(NewFetchers()...)
@@ -121,6 +127,7 @@ func main() {
 
 	// Decorate userRepo with userProducer
 	decoratedUserRepo := handler.NewUserRepositorySaga(userRepo, userProducer, userConsumer)
+	slog.Debug("user repository saga created")
 
 	apiClient := server.Client{
 		Config:      serverCfg.NewFromEnv(),
@@ -142,4 +149,5 @@ func main() {
 	if err := s.ListenAndServe(); err != nil {
 		slog.Error("HTTP server error occurred", slog.Any("error", err))
 	}
+	slog.Debug("server stopped gracefully")
 }

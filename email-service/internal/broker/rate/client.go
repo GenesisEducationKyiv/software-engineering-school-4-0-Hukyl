@@ -11,6 +11,15 @@ import (
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker/transport/config"
 )
 
+var logger *slog.Logger
+
+func getLogger() *slog.Logger {
+	if logger == nil {
+		logger = slog.Default().With(slog.Any("src", "rateClient"))
+	}
+	return logger
+}
+
 var rateTimeout = 5 * time.Second
 
 const eventType = "RateFetched"
@@ -33,7 +42,9 @@ type Client struct {
 }
 
 func (c *Client) Subscribe(f Handler) error {
+	slog.Debug("subscribing to rate events", slog.Any("handler", f))
 	c.consumer.Subscribe(func(b []byte) error {
+		getLogger().Debug("received message", slog.Any("handler", f))
 		ctx, cancel := context.WithTimeout(context.Background(), rateTimeout)
 		defer cancel()
 		event, err := c.unmarshal(b)
@@ -62,6 +73,7 @@ func (c *Client) unmarshal(data []byte) (*rateFetchedEvent, error) {
 }
 
 func (c *Client) Close() error {
+	getLogger().Info("closing rate client")
 	close(c.stopSignal)
 	return c.consumer.Close()
 }
@@ -72,6 +84,7 @@ func NewClient(config config.Config) (*Client, error) {
 		slog.Error("creating rate consumer", slog.Any("error", err))
 		return nil, err
 	}
+	getLogger().Debug("new rate consumer created")
 	stopSignal := make(chan struct{})
 	go consumer.Listen(stopSignal)
 	return &Client{consumer: consumer, stopSignal: stopSignal}, nil

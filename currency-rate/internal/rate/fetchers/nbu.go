@@ -13,6 +13,15 @@ import (
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/rate"
 )
 
+var logger *slog.Logger
+
+func getLogger() *slog.Logger {
+	if logger == nil {
+		logger = slog.Default().With(slog.Any("src", "rateFetcher"))
+	}
+	return logger
+}
+
 // NBURateFetcher is a RateFetcher implementation that fetches rates from
 // the National Bank of Ukraine
 // API docs: https://bank.gov.ua/ua/open-data/api-dev
@@ -51,6 +60,7 @@ func (n *NBURateFetcher) fetchRate(ctx context.Context, ccFrom, ccTo string) (ra
 		Time:         time.Now(),
 	}
 	if !slices.Contains(n.SupportedCurrencies(ctx), ccFrom) {
+		getLogger().Info("unsupported currency", slog.String("currency", ccFrom))
 		return result, fmt.Errorf("unsupported currency: %s", ccFrom)
 	}
 	formattedURL := n.formatURL(ccFrom, time.Now())
@@ -63,6 +73,11 @@ func (n *NBURateFetcher) fetchRate(ctx context.Context, ccFrom, ccTo string) (ra
 		return result, err
 	}
 	defer resp.Body.Close()
+	getLogger().Info(
+		"fetched rate",
+		slog.String("url", formattedURL),
+		slog.Any("status", resp.Status),
+	)
 	var data []struct {
 		Rate float32 `json:"rate"`
 	}
@@ -78,7 +93,7 @@ func (n *NBURateFetcher) fetchRate(ctx context.Context, ccFrom, ccTo string) (ra
 
 func (n *NBURateFetcher) FetchRate(ctx context.Context, ccFrom, ccTo string) (rate.Rate, error) {
 	result, err := n.fetchRate(ctx, ccFrom, ccTo)
-	slog.Info(
+	getLogger().Info(
 		"fetched rate",
 		slog.String("fetcher", fmt.Sprint(n)), slog.Any("rate", result), slog.Any("error", err),
 	)

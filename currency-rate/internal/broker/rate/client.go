@@ -15,6 +15,15 @@ import (
 
 var lastEventID int
 
+var logger *slog.Logger
+
+func getLogger() *slog.Logger {
+	if logger == nil {
+		logger = slog.Default().With(slog.Any("src", "rateProducer"))
+	}
+	return logger
+}
+
 type Producer struct {
 	producer *transport.Producer
 }
@@ -49,7 +58,7 @@ func (m *Producer) SendRate(
 		Rate: rate,
 		Time: time.Now(),
 	})
-	slog.Info("producing rate message", slog.Any("rate", rate))
+	getLogger().Info("producing rate message", slog.Any("rate", rate))
 	msgBytes, err := m.marshal(data)
 	if err != nil {
 		return err
@@ -57,6 +66,7 @@ func (m *Producer) SendRate(
 	if err := m.producer.Produce(ctx, msgBytes); err != nil {
 		return fmt.Errorf("producing rate message: %w", err)
 	}
+	getLogger().Debug("rate message produced")
 	return nil
 }
 

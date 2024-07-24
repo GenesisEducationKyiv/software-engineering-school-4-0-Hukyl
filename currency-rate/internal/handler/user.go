@@ -11,6 +11,15 @@ import (
 
 const eventTimeout = 5 * time.Second
 
+var logger *slog.Logger
+
+func getLogger() *slog.Logger {
+	if logger == nil {
+		logger = slog.Default().With(slog.Any("src", "userSagaHandler"))
+	}
+	return logger
+}
+
 type UserRepo interface {
 	Create(user *models.User) error
 	Delete(user *models.User) error
@@ -22,7 +31,7 @@ func doWithContext(ctx context.Context, f func() error) error {
 	go func() {
 		defer close(done)
 		if err := f(); err != nil {
-			slog.Error("error", slog.Any("error", err))
+			getLogger().Error("error", slog.Any("error", err))
 		}
 	}()
 
@@ -42,6 +51,7 @@ type UserRepositorySaga struct {
 }
 
 func (u *UserRepositorySaga) Create(user *models.User) error {
+	getLogger().Debug("creating user")
 	if err := u.repo.Create(user); err != nil {
 		return err
 	}
@@ -50,10 +60,12 @@ func (u *UserRepositorySaga) Create(user *models.User) error {
 	if err := u.producer.SendSubscribe(ctx, user.Email); err != nil {
 		return err
 	}
+	getLogger().Debug("user created")
 	return nil
 }
 
 func (u *UserRepositorySaga) Delete(user *models.User) error {
+	getLogger().Debug("deleting user")
 	if err := u.repo.Delete(user); err != nil {
 		return err
 	}
@@ -62,6 +74,7 @@ func (u *UserRepositorySaga) Delete(user *models.User) error {
 	if err := u.producer.SendUnsubscribe(ctx, user.Email); err != nil {
 		return err
 	}
+	getLogger().Debug("user deleted")
 	return nil
 }
 
@@ -84,26 +97,26 @@ func NewUserRepositorySaga(
 			return urd.repo.Delete(&models.User{Email: email})
 		})
 		if err != nil {
-			slog.Error("subscribed compensate", slog.Any("error", err))
+			getLogger().Error("subscribed compensate", slog.Any("error", err))
 		}
 		return nil
 	})
 	if err != nil {
-		slog.Error("subscribing compensate", slog.Any("error", err))
+		getLogger().Error("subscribing compensate", slog.Any("error", err))
 	}
-	slog.Debug("repository saga subscribed to subscribe compensate")
+	getLogger().Debug("repository saga subscribed to subscribe compensate")
 	err = consumer.ListenUnsubscribeCompensate(func(ctx context.Context, email string) error {
 		err := doWithContext(ctx, func() error {
 			return urd.repo.Create(&models.User{Email: email})
 		})
 		if err != nil {
-			slog.Error("unsubscribed compensate", slog.Any("error", err))
+			getLogger().Error("unsubscribed compensate", slog.Any("error", err))
 		}
 		return nil
 	})
 	if err != nil {
-		slog.Error("unsubscribing compensate", slog.Any("error", err))
+		getLogger().Error("unsubscribing compensate", slog.Any("error", err))
 	}
-	slog.Debug("repository saga subscribed to unsubscribe compensate")
+	getLogger().Debug("repository saga subscribed to unsubscribe compensate")
 	return urd
 }
