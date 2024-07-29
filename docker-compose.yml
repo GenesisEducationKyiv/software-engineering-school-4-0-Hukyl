@@ -1,8 +1,8 @@
 version: '3'
 
 services:
-  db:
-    container_name: db
+  postgres:
+    container_name: postgres
     image: postgres
     ports:
       - "5432:5432"
@@ -14,25 +14,61 @@ services:
     volumes:
       - postgres-db:/var/lib/postgresql/data
 
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3.13.4-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+    environment:
+      AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
+      RABBITMQ_DEFAULT_USER: ${BROKER_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${BROKER_PASSWORD}
+    healthcheck:
+      test: rabbitmq-diagnostics -q status
+      start_period: 10s
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
   api-service:
     container_name: api-service
     build:
-      context: .
+      context: ./currency-rate
       dockerfile: Dockerfile
     ports:
       - 8080:8080
     volumes:
-      - .:/go/src/github.com/Hukyl/genesis-kma-school-entry
+      - ./currency-rate:/go/src/github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate
     depends_on:
-      - db
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_started
     env_file:
       - ./.env
     restart: always
     environment:
       - DATABASE_SERVICE=postgres
-      - DATABASE_DSN=host=db user=postgres password=postgres dbname=genesis_kma_se_school port=5432 sslmode=disable TimeZone=UTC
+      - DATABASE_DSN=host=postgres user=postgres password=postgres dbname=genesis_kma_se_school port=5432 sslmode=disable TimeZone=UTC
+  
+  email-service:
+    container_name: email-service
+    build:
+      context: ./email-service/
+      dockerfile: Dockerfile
+    ports:
+      - 8081:8081
+    volumes:
+      - ./email-service:/go/src/github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    env_file:
+      - ./.env
+    restart: always
 
 
 volumes:
   postgres-db:
-      

@@ -21,5 +21,10 @@ jobs:
       with:
         go-version: '1.22'
 
-    - name: Test
+    - name: Test API service
       run: go test -v -tags integration ./...
+      working-directory: ./currency-rate
+
+    - name: Test email service
+      run: go test -v ./...
+      working-directory: ./email-service

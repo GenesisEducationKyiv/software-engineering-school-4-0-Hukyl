@@ -9,7 +9,7 @@ Test task for Genesis &amp; KMA Software Engineering School 4.0
 
 2. Clone the repository:
     ```bash
-    git clone https://github.com/Hukyl/genesis-kma-school-entry.git
+    git clone https://github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate.git
     ```
 
 3. Navigate to the project directory:
