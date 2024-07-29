@@ -1,0 +1,36 @@
+{
+    "cSpell.ignoreWords": [
+        "Hukyl",
+        "godotenv",
+        "joho",
+        "gorm",
+        "gonic",
+        "gomail",
+        "smtpmock",
+        "ericchiang",
+        "stretchr",
+        "valcode",
+        "tbody",
+        "Rcptto",
+        "nolint",
+        "amqp",
+        "soft",
+    ],
+    "cSpell.ignorePaths": [
+        ".vscode",
+        ".golangci.yml",
+    ],
+    "cSpell.words": [
+        "Dialector",
+        "rabbitmq",
+    ],
+    "go.buildFlags": [
+        "-tags",
+        "integration",
+    ],
+    "go.lintFlags": [
+        "--build-tags",
+        "integration",
+    ],
+    "go.lintOnSave": "package",
+}
