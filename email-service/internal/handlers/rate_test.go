@@ -23,14 +23,11 @@ func (m *rateRepositoryMock) Create(rate *models.Rate) error {
 
 func TestRateEvents_SaveRate(t *testing.T) {
 	// Arrange
-	t.Parallel()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	repo := new(rateRepositoryMock)
 	repo.On("Create", mock.Anything).Return(nil)
 	rateEvents := handlers.NewRateEvents(repo)
 	// Act
-	err := rateEvents.SaveRate(ctx, "USD", "UAH", 27.5, time.Now())
+	err := rateEvents.SaveRate(context.Background(), "USD", "UAH", 27.5, time.Now())
 	// Assert
 	require.NoError(t, err)
 	repo.AssertCalled(t, "Create", mock.MatchedBy(func(rate *models.Rate) bool {
@@ -47,6 +44,7 @@ func TestRateEvents_CancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	repo := new(rateRepositoryMock)
+	repo.On("Create", mock.Anything).Return(nil)
 	rateEvents := handlers.NewRateEvents(repo)
 	// Act
 	err := rateEvents.SaveRate(ctx, "USD", "UAH", 27.5, time.Now())
