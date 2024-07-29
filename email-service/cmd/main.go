@@ -144,7 +144,7 @@ func getOutboundIP() string {
 	return conn.LocalAddr().String()
 }
 
-func main() {
+func main() { // nolint: funlen
 	// Initialize settings
 	err := settings.InitSettings()
 	if err != nil {
