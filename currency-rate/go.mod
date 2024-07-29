@@ -4,6 +4,7 @@ go 1.22.4
 
 require (
 	github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl v0.0.0-20240724220305-7aa950741432
+	github.com/VictoriaMetrics/metrics v1.35.1
 	github.com/ericchiang/css v1.3.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/stretchr/testify v1.9.0
@@ -44,6 +45,8 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
+	github.com/valyala/fastrand v1.1.0 // indirect
+	github.com/valyala/histogram v1.2.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect

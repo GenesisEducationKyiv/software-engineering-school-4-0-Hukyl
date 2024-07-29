@@ -6,9 +6,14 @@ import (
 	"log/slog"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/rate"
+	"github.com/VictoriaMetrics/metrics"
 )
 
 var logger *slog.Logger
+
+var totalFailedFetches = metrics.NewCounter(
+	`rate_fetcher_failed_fetches_total{fetcher="rate_service"}`,
+)
 
 func getLogger() *slog.Logger {
 	if logger == nil {
@@ -37,6 +42,7 @@ func (s *RateService) FetchRate(ctx context.Context, from, to string) (rate.Rate
 		}
 		return r, nil
 	}
+	totalFailedFetches.Inc()
 	getLogger().Error("failed to fetch rate")
 	return rate.Rate{}, errors.New("failed to fetch rate")
 }

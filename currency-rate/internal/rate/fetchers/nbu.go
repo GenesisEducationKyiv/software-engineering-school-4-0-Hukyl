@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/rate"
+	"github.com/VictoriaMetrics/metrics"
 )
 
 var logger *slog.Logger
@@ -21,6 +22,15 @@ func getLogger() *slog.Logger {
 	}
 	return logger
 }
+
+var (
+	nbuConsecutiveErrorsMetric = metrics.GetOrCreateCounter(
+		`rate_fetcher_consecutive_errors_total{fetcher="nbu_rate_fetcher"}`,
+	)
+	nbuResponseTimeMetric = metrics.GetOrCreateHistogram(
+		`rate_fetcher_response_duration_seconds{fetcher="nbu_rate_fetcher"}`,
+	)
+)
 
 // NBURateFetcher is a RateFetcher implementation that fetches rates from
 // the National Bank of Ukraine
@@ -68,11 +78,13 @@ func (n *NBURateFetcher) fetchRate(ctx context.Context, ccFrom, ccTo string) (ra
 	if err != nil {
 		return result, err
 	}
+	startTime := time.Now()
 	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return result, err
 	}
 	defer resp.Body.Close()
+	nbuResponseTimeMetric.UpdateDuration(startTime)
 	getLogger().Info(
 		"fetched rate",
 		slog.String("url", formattedURL),
@@ -98,8 +110,10 @@ func (n *NBURateFetcher) FetchRate(ctx context.Context, ccFrom, ccTo string) (ra
 		slog.String("fetcher", fmt.Sprint(n)), slog.Any("rate", result), slog.Any("error", err),
 	)
 	if err == nil {
+		nbuConsecutiveErrorsMetric.Set(0)
 		return result, nil
 	}
+	nbuConsecutiveErrorsMetric.Inc()
 	return rate.Rate{}, err
 }
 

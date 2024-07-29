@@ -8,6 +8,7 @@ import (
 type Config struct {
 	Debug                   bool
 	CurrencyBeaconAPIKey    string
+	VictoriaMetricsPushURL  string
 	RateRefreshCronSpec     string
 	RateQueueName           string
 	UserQueueName           string
@@ -26,6 +27,7 @@ func NewFromEnv() Config {
 	return Config{
 		Debug:                   getOrError("DEBUG") == "true",
 		CurrencyBeaconAPIKey:    getOrError("CURRENCY_BEACON_API_KEY"),
+		VictoriaMetricsPushURL:  getOrError("VICTORIA_METRICS_PUSH_URL"),
 		RateRefreshCronSpec:     getOrError("RATE_REFRESH_CRON_SPEC"),
 		RateQueueName:           getOrError("RATE_QUEUE_NAME"),
 		UserQueueName:           getOrError("USER_QUEUE_NAME"),

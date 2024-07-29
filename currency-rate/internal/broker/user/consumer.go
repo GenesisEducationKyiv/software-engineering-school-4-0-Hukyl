@@ -8,6 +8,7 @@ import (
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker/transport"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker/transport/config"
+	"github.com/VictoriaMetrics/metrics"
 )
 
 var consumerLogger *slog.Logger
@@ -17,6 +18,14 @@ func getConsumerLogger() *slog.Logger {
 		consumerLogger = slog.Default().With(slog.Any("src", "userConsumer"))
 	}
 	return consumerLogger
+}
+
+func getTotalReceivedUserMessagesCounter(eventName string) *metrics.Counter {
+	// ? is it better to rework message delivering
+	// ? logic to decrease the number of received messages?
+	return metrics.GetOrCreateCounter(fmt.Sprintf(
+		`broker_received_messages_total{consumer="user_consumer", event="%s"}`, eventName,
+	))
 }
 
 type Consumer struct {
@@ -36,6 +45,7 @@ func (c *Consumer) unmarshal(b []byte) (subscribeEvent, error) {
 
 func (c *Consumer) handleWithEvent(eventName string, f Handler) func([]byte) error {
 	return func(b []byte) error {
+		getTotalReceivedUserMessagesCounter(eventName).Inc()
 		getConsumerLogger().Debug("received message")
 		ctx, cancel := context.WithTimeout(context.Background(), subTimeout)
 		defer cancel()

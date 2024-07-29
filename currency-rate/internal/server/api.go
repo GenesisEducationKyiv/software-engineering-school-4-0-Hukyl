@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/models"
+	"github.com/VictoriaMetrics/metrics"
 	"github.com/gin-gonic/gin"
 )
 
@@ -27,6 +28,18 @@ const (
 	ccTo            = "UAH"
 )
 
+func getTotalFailedRequestsMetric(path string) *metrics.Counter {
+	return metrics.GetOrCreateCounter(
+		`api_failed_requests_total{path="` + path + `"}`,
+	)
+}
+
+func getDurationMetric(path string) *metrics.Histogram {
+	return metrics.GetOrCreateHistogram(
+		`api_duration_seconds{path="` + path + `"}`,
+	)
+}
+
 type UserRepository interface {
 	Exists(user *models.User) (bool, error)
 	Create(user *models.User) error
@@ -37,6 +50,8 @@ type UserRepository interface {
 // from a RateFetcher interface and returns it as a JSON response.
 func NewGetRateHandler(rateService RateService, timeout time.Duration) func(*gin.Context) {
 	return func(c *gin.Context) {
+		startTime := time.Now()
+		defer getDurationMetric(c.FullPath()).UpdateDuration(startTime)
 		getLogger().Info("new rate request")
 		ctx, cancel := context.WithTimeout(c.Request.Context(), timeout)
 		defer cancel()
@@ -58,6 +73,8 @@ func NewGetRateHandler(rateService RateService, timeout time.Duration) func(*gin
 // If the subscription is successful, returns a 200 OK status code.
 func NewSubscribeUserHandler(repo UserRepository) func(*gin.Context) {
 	return func(c *gin.Context) {
+		startTime := time.Now()
+		defer getDurationMetric(c.FullPath()).UpdateDuration(startTime)
 		getLogger().Info("new subscribe request")
 		email := c.PostForm("email")
 		if email == "" {
@@ -70,6 +87,7 @@ func NewSubscribeUserHandler(repo UserRepository) func(*gin.Context) {
 		if err != nil {
 			getLogger().Error("checking user", slog.Any("error", err))
 			c.JSON(http.StatusInternalServerError, err.Error())
+			getTotalFailedRequestsMetric(c.FullPath()).Inc()
 			return
 		}
 		if exists {
@@ -81,6 +99,7 @@ func NewSubscribeUserHandler(repo UserRepository) func(*gin.Context) {
 		if err != nil {
 			getLogger().Error("creating user", slog.Any("error", err))
 			c.JSON(http.StatusInternalServerError, err.Error())
+			getTotalFailedRequestsMetric(c.FullPath()).Inc()
 			return
 		}
 		getLogger().Debug("user subscribed")
@@ -91,6 +110,8 @@ func NewSubscribeUserHandler(repo UserRepository) func(*gin.Context) {
 
 func UnsubscribeUserHandler(repo UserRepository) func(*gin.Context) {
 	return func(c *gin.Context) {
+		startTime := time.Now()
+		defer getDurationMetric(c.FullPath()).UpdateDuration(startTime)
 		getLogger().Info("new unsubscribe request")
 		email := c.PostForm("email")
 		if email == "" {
@@ -103,6 +124,7 @@ func UnsubscribeUserHandler(repo UserRepository) func(*gin.Context) {
 		if err != nil {
 			getLogger().Error("checking user", slog.Any("error", err))
 			c.JSON(http.StatusInternalServerError, err.Error())
+			getTotalFailedRequestsMetric(c.FullPath()).Inc()
 			return
 		}
 		if !exists {
@@ -114,6 +136,7 @@ func UnsubscribeUserHandler(repo UserRepository) func(*gin.Context) {
 		if err != nil {
 			getLogger().Error("deleting user", slog.Any("error", err))
 			c.JSON(http.StatusInternalServerError, err.Error())
+			getTotalFailedRequestsMetric(c.FullPath()).Inc()
 			return
 		}
 		getLogger().Debug("user unsubscribed")

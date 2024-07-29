@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/rate"
+	"github.com/VictoriaMetrics/metrics"
 	"github.com/ericchiang/css"
 	"golang.org/x/net/html"
 )
@@ -20,6 +21,15 @@ const (
 	supportedCurrenciesURL = "https://currencybeacon.com/supported-currencies"
 	baseURL                = "https://api.currencybeacon.com/v1/latest?" +
 		"api_key=%s&base=%s&symbols=%s"
+)
+
+var (
+	beaconConsecutiveErrorsMetric = metrics.GetOrCreateCounter(
+		`rate_fetcher_consecutive_errors_total{fetcher="currency_beacon_fetcher"}`,
+	)
+	beaconResponseTimeMetric = metrics.GetOrCreateHistogram(
+		`rate_fetcher_response_duration_seconds{fetcher="currency_beacon_fetcher"}`,
+	)
 )
 
 type endpointResponse struct {
@@ -43,6 +53,7 @@ func (c *CurrencyBeaconFetcher) SupportedCurrencies(ctx context.Context) []strin
 		)
 		return nil
 	}
+	startTime := time.Now()
 	response, err := http.DefaultClient.Do(req)
 	getLogger().Info(
 		"fetching supported currencies",
@@ -52,6 +63,7 @@ func (c *CurrencyBeaconFetcher) SupportedCurrencies(ctx context.Context) []strin
 		return nil
 	}
 	defer response.Body.Close()
+	beaconResponseTimeMetric.UpdateDuration(startTime)
 	sel, _ := css.Parse(cssSelector)
 	node, err := html.Parse(response.Body)
 	if err != nil {
@@ -77,11 +89,13 @@ func (c *CurrencyBeaconFetcher) fetchRate(
 	if err != nil {
 		return rate.Rate{}, err
 	}
+	startTime := time.Now()
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return rate.Rate{}, err
 	}
 	defer resp.Body.Close()
+	beaconResponseTimeMetric.UpdateDuration(startTime)
 	getLogger().Debug(
 		"fetched rate",
 		slog.String("url", formattedURL),
@@ -135,8 +149,10 @@ func (c *CurrencyBeaconFetcher) FetchRate(
 		slog.Any("error", err),
 	)
 	if err == nil {
+		beaconConsecutiveErrorsMetric.Set(0)
 		return result, nil
 	}
+	beaconConsecutiveErrorsMetric.Inc()
 	return rate.Rate{}, err
 }
 

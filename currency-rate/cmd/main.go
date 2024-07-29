@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	rateProducer "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/broker/rate"
 	userBroker "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/broker/user"
@@ -19,6 +21,7 @@ import (
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/database"
 	dbCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/database/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/settings"
+	"github.com/VictoriaMetrics/metrics"
 )
 
 const (
@@ -146,6 +149,17 @@ func main() {
 	// Start HTTP server
 	s := server.NewServer(apiClient.Config, server.NewEngine(apiClient))
 	slog.Info("starting server", slog.Any("address", s.Addr))
+
+	err = metrics.InitPush(
+		appConfig.VictoriaMetricsPushURL,
+		10*time.Second,
+		fmt.Sprintf(`job="currency-rate",instance="%s"`, s.Addr),
+		true,
+	)
+	if err != nil {
+		slog.Error("failed to initialize metrics push", slog.Any("error", err))
+	}
+
 	if err := s.ListenAndServe(); err != nil {
 		slog.Error("HTTP server error occurred", slog.Any("error", err))
 	}

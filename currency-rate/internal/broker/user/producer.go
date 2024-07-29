@@ -11,6 +11,7 @@ import (
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker/transport"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker/transport/config"
+	"github.com/VictoriaMetrics/metrics"
 )
 
 var lastEventID int
@@ -23,6 +24,15 @@ func getProducerLogger() *slog.Logger {
 	}
 	return producerLogger
 }
+
+var (
+	totalSentUserMessagesCounter = metrics.NewCounter(
+		`broker_sent_messages_total{producer="user_producer"}`,
+	)
+	messageSizeHistogram = metrics.NewHistogram(
+		`broker_message_size_bytes{producer="user_producer"}`,
+	)
+)
 
 type Producer struct {
 	producer *transport.Producer
@@ -65,6 +75,8 @@ func (p *Producer) sendEvent(
 	if err := p.producer.Produce(ctx, msgBytes); err != nil {
 		return fmt.Errorf("producing event: %w", err)
 	}
+	totalSentUserMessagesCounter.Inc()
+	messageSizeHistogram.Update(float64(len(msgBytes)))
 	return nil
 }
 

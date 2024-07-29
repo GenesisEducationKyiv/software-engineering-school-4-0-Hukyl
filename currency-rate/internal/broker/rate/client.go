@@ -11,11 +11,21 @@ import (
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker/transport"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker/transport/config"
+	"github.com/VictoriaMetrics/metrics"
 )
 
 var lastEventID int
 
 var logger *slog.Logger
+
+var (
+	totalSentRateMessagesCounter = metrics.NewCounter(
+		`broker_sent_messages_total{producer="rate_producer"}`,
+	)
+	messageSizeHistogram = metrics.NewHistogram(
+		`broker_message_size_bytes{producer="rate_producer"}`,
+	)
+)
 
 func getLogger() *slog.Logger {
 	if logger == nil {
@@ -66,6 +76,8 @@ func (m *Producer) SendRate(
 	if err := m.producer.Produce(ctx, msgBytes); err != nil {
 		return fmt.Errorf("producing rate message: %w", err)
 	}
+	totalSentRateMessagesCounter.Inc()
+	messageSizeHistogram.Update(float64(len(msgBytes)))
 	getLogger().Debug("rate message produced")
 	return nil
 }

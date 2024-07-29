@@ -73,5 +73,15 @@ services:
     restart: always
     <<: *compose-database-env
 
+  victoria-metrics:
+    container_name: victoria-metrics
+    image: victoriametrics/victoria-metrics
+    ports:
+      - "8428:8428"
+    restart: always
+    volumes:
+      - ./victoria-metrics:/victoria-metrics-data
+    # command: -storageDataPath=/victoria-metrics-data -retentionPeriod=30d
+
 volumes:
   postgres-db:
