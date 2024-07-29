@@ -30,7 +30,7 @@ func TestSubscriberEvents_Subscribe(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	repo := new(subscriberRepositoryMock)
-	repo.On("Create", mock.AnythingOfType("*models.Subscriber")).Return(nil)
+	repo.On("Create", mock.Anything).Return(nil)
 	subscriberEvents := handlers.NewSubscriberEvents(repo)
 	// Act
 	err := subscriberEvents.Subscribe(ctx, "example@gmail.com")
@@ -47,7 +47,7 @@ func TestSubscriberEvents_Unsubscribe(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	repo := new(subscriberRepositoryMock)
-	repo.On("Delete", mock.AnythingOfType("*models.Subscriber")).Return(nil)
+	repo.On("Delete", mock.Anything).Return(nil)
 	subscriberEvents := handlers.NewSubscriberEvents(repo)
 	// Act
 	err := subscriberEvents.Unsubscribe(ctx, "example@gmail.com")
@@ -58,19 +58,16 @@ func TestSubscriberEvents_Unsubscribe(t *testing.T) {
 	}))
 }
 
-// For some reason, this test fails, when the one for rate passes.
-// TODO: Fix the test
-// func TestSubscriberEvents_CancelledContext(t *testing.T) {
-// 	// Arrange
-// 	t.Parallel()
-// 	ctx, cancel := context.WithCancel(context.Background())
-// 	cancel()
-// 	repo := new(subscriberRepositoryMock)
-// 	repo.On("Create", mock.AnythingOfType("*models.Subscriber")).Return(nil)
-// 	subscriberEvents := handlers.NewSubscriberEvents(repo)
-// 	// Act
-// 	err := subscriberEvents.Subscribe(ctx, "test@gmail.com")
-// 	// Assert
-// 	require.Error(t, err)
-// 	repo.AssertNotCalled(t, "Create")
-// }
+func TestSubscriberEvents_CancelledContext(t *testing.T) {
+	// Arrange
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	repo := new(subscriberRepositoryMock)
+	repo.On("Create", mock.Anything).Return(nil)
+	subscriberEvents := handlers.NewSubscriberEvents(repo)
+	// Act
+	err := subscriberEvents.Subscribe(ctx, "test@gmail.com")
+	// Assert
+	require.Error(t, err)
+	repo.AssertNotCalled(t, "Create")
+}

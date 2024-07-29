@@ -24,6 +24,7 @@ func (s *SubscriberEvents) Subscribe(ctx context.Context, email string) error {
 	})
 	if err != nil {
 		slog.Error("saving subscriber", slog.Any("error", err))
+		return err
 	}
 	return nil
 }
@@ -36,6 +37,7 @@ func (s *SubscriberEvents) Unsubscribe(ctx context.Context, email string) error 
 	})
 	if err != nil {
 		slog.Error("deleting subscriber", slog.Any("error", err))
+		return err
 	}
 	return nil
 }
