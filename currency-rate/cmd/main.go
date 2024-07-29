@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"log/slog"
+	"net"
 	"os"
 	"time"
 
@@ -90,7 +92,18 @@ func NewCron(transportConfig transportCfg.Config, fetcher service.RateFetcher) *
 	return cronManager
 }
 
-func main() {
+// Get preferred outbound ip of this machine.
+func getOutboundIP() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	return conn.LocalAddr().String()
+}
+
+func main() { // nolint: funlen
 	if err := settings.InitSettings(); err != nil {
 		slog.Error("failed to initialize settings", slog.Any("error", err))
 	}
@@ -153,7 +166,7 @@ func main() {
 	err = metrics.InitPush(
 		appConfig.VictoriaMetricsPushURL,
 		10*time.Second,
-		fmt.Sprintf(`job="currency-rate",instance="%s"`, s.Addr),
+		fmt.Sprintf(`job="currency-rate",instance="%s"`, getOutboundIP()),
 		true,
 	)
 	if err != nil {

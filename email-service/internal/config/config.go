@@ -8,6 +8,7 @@ import (
 type Config struct {
 	Debug                   bool
 	NotificationCropSpec    string
+	VictoriaMetricsPushURL  string
 	RateQueueName           string
 	UserQueueName           string
 	UserCompensateQueueName string
@@ -25,6 +26,7 @@ func NewFromEnv() Config {
 	return Config{
 		Debug:                   getOrError("DEBUG") == "true",
 		NotificationCropSpec:    getOrError("NOTIFICATION_CRON_SPEC"),
+		VictoriaMetricsPushURL:  getOrError("VICTORIA_METRICS_PUSH_URL"),
 		RateQueueName:           getOrError("RATE_QUEUE_NAME"),
 		UserQueueName:           getOrError("USER_QUEUE_NAME"),
 		UserCompensateQueueName: getOrError("USER_COMPENSATE_QUEUE_NAME"),

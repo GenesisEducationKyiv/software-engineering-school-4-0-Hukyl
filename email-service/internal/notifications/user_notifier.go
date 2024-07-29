@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/models"
+	"github.com/VictoriaMetrics/metrics"
 )
 
 var logger *slog.Logger
@@ -16,6 +17,11 @@ func getLogger() *slog.Logger {
 	}
 	return logger
 }
+
+var (
+	notificationsSentTotal   = metrics.NewCounter(`notifications_sent_total`)
+	notificationsFailedTotal = metrics.NewCounter(`notifications_failed_total`)
+)
 
 type EmailClient interface {
 	SendEmail(ctx context.Context, emails []string, subject, message string) error
@@ -62,6 +68,16 @@ func logAndWrap(message string, err error) error {
 }
 
 func (n *MailNotifier) Notify(ctx context.Context) error {
+	err := n.notify(ctx)
+	if err != nil {
+		notificationsFailedTotal.Inc()
+		return err
+	}
+	notificationsSentTotal.Inc()
+	return nil
+}
+
+func (n *MailNotifier) notify(ctx context.Context) error {
 	rate, err := n.rateRepo.Latest("USD", "UAH")
 	if err != nil {
 		return logAndWrap("failed to fetch rate", err)

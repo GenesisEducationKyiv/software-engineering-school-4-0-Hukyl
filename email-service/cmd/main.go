@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"log/slog"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -23,6 +26,7 @@ import (
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/database"
 	dbCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/database/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/settings"
+	"github.com/VictoriaMetrics/metrics"
 )
 
 const defaultCronSpec = "0 0 12 * * *"
@@ -130,6 +134,16 @@ func NewLogger() *slog.Logger {
 	return logger
 }
 
+func getOutboundIP() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	return conn.LocalAddr().String()
+}
+
 func main() {
 	// Initialize settings
 	err := settings.InitSettings()
@@ -180,6 +194,16 @@ func main() {
 		slog.Error("initializing subscriber consumer")
 	}
 	defer subConsumer.Close()
+
+	err = metrics.InitPush(
+		appConfig.VictoriaMetricsPushURL,
+		10*time.Second,
+		fmt.Sprintf(`job="email-service",instance="%s"`, getOutboundIP()),
+		true,
+	)
+	if err != nil {
+		slog.Error("failed to initialize metrics push", slog.Any("error", err))
+	}
 
 	slog.Info("waiting for termination signal")
 	termChannel := make(chan os.Signal, 1)

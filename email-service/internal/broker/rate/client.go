@@ -3,12 +3,14 @@ package rate
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker/transport"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker/transport/config"
+	"github.com/VictoriaMetrics/metrics"
 )
 
 var logger *slog.Logger
@@ -21,6 +23,14 @@ func getLogger() *slog.Logger {
 }
 
 var rateTimeout = 5 * time.Second
+
+func getTotalReceivedMessagesCounter(eventName string) *metrics.Counter {
+	// ? is it better to rework message delivering
+	// ? logic to decrease the number of received messages?
+	return metrics.GetOrCreateCounter(fmt.Sprintf(
+		`broker_received_messages_total{consumer="rate_consumer", event="%s"}`, eventName,
+	))
+}
 
 const eventType = "RateFetched"
 
@@ -44,6 +54,7 @@ type Client struct {
 func (c *Client) Subscribe(f Handler) error {
 	slog.Debug("subscribing to rate events", slog.Any("handler", f))
 	c.consumer.Subscribe(func(b []byte) error {
+		getTotalReceivedMessagesCounter(eventType).Inc()
 		getLogger().Debug("received message", slog.Any("handler", f))
 		ctx, cancel := context.WithTimeout(context.Background(), rateTimeout)
 		defer cancel()

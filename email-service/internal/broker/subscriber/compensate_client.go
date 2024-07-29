@@ -3,15 +3,23 @@ package subscriber
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker/transport"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker/transport/config"
+	"github.com/VictoriaMetrics/metrics"
 )
 
 type CompensateClient struct {
 	Client
 	producer *transport.Producer
+}
+
+func getTotalSentMessagesCounter(eventName string) *metrics.Counter {
+	return metrics.GetOrCreateCounter(fmt.Sprintf(
+		`broker_sent_messages_total{producer="compensate_producer", event="%s"}`, eventName,
+	))
 }
 
 const (
@@ -23,6 +31,7 @@ func (c *CompensateClient) handleWithEvent(
 	eventName, compensateEventName string, f Handler,
 ) func([]byte) error {
 	return func(b []byte) error {
+		getTotalReceivedUserMessagesCounter(eventName).Inc()
 		ctx, cancel := context.WithTimeout(context.Background(), subTimeout)
 		defer cancel()
 		event, err := c.unmarshal(b)
@@ -90,6 +99,7 @@ func (c *CompensateClient) compensate(event SubscribeEvent) {
 	if err := c.producer.Produce(context.Background(), eventBytes); err != nil {
 		slog.Error("compensating", slog.Any("error", err))
 	}
+	getTotalSentMessagesCounter(event.Type).Inc()
 }
 
 func NewCompensateClient(

@@ -8,7 +8,15 @@ import (
 	"strconv"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/email-service/internal/mail/config"
+	"github.com/VictoriaMetrics/metrics"
 	"github.com/go-gomail/gomail"
+)
+
+var gomailOutgoingEmailsCounter = metrics.GetOrCreateCounter(
+	`email_outgoing_total{backend="gomail"}`,
+)
+var gomailErrorsCounter = metrics.GetOrCreateCounter(
+	`email_errors_total{backend="gomail"}`,
 )
 
 type GomailMailer struct {
@@ -50,13 +58,16 @@ func (gm *GomailMailer) SendEmail(
 	select {
 	case <-ctx.Done():
 		err := ctx.Err()
+		gomailErrorsCounter.Inc()
 		getLogger().Error("context done", slog.Any("error", err))
 		return fmt.Errorf("email sending cancelled: %w", err)
 	case err := <-done:
 		if err != nil {
+			gomailErrorsCounter.Inc()
 			getLogger().Error("sending email", slog.Any("error", err))
 			return fmt.Errorf("failed to send email: %w", err)
 		}
+		gomailOutgoingEmailsCounter.Inc()
 		getLogger().Debug("email sent")
 	}
 	return nil

@@ -3,15 +3,25 @@ package subscriber
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker/transport"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/broker/transport/config"
+	"github.com/VictoriaMetrics/metrics"
 )
 
 var logger *slog.Logger
+
+func getTotalReceivedUserMessagesCounter(eventName string) *metrics.Counter {
+	// ? is it better to rework message delivering
+	// ? logic to decrease the number of received messages?
+	return metrics.GetOrCreateCounter(fmt.Sprintf(
+		`broker_received_messages_total{consumer="subscriber_consumer", event="%s"}`, eventName,
+	))
+}
 
 func getLogger() *slog.Logger {
 	if logger == nil {
@@ -47,6 +57,7 @@ func (c *Client) handleWithEvent(eventName string, f Handler) func([]byte) error
 		slog.Any("handler", f), slog.Any("eventName", eventName),
 	)
 	return func(b []byte) error {
+		getTotalReceivedUserMessagesCounter(eventName).Inc()
 		getLogger().Debug("received message", slog.Any("handler", f))
 		ctx, cancel := context.WithTimeout(context.Background(), subTimeout)
 		defer cancel()
