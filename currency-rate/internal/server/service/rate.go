@@ -4,51 +4,37 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/models"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/rate"
 )
-
-type RateRepo interface {
-	Create(rate *models.Rate) error
-}
 
 type RateFetcher interface {
 	FetchRate(ctx context.Context, ccFrom, ccTo string) (rate.Rate, error)
 }
 
 type RateService struct {
-	repo    RateRepo
-	fetcher RateFetcher
+	fetchers []RateFetcher
 }
 
-func (s *RateService) createRate(r rate.Rate) (*models.Rate, error) {
-	row := &models.Rate{
-		CurrencyFrom: r.CurrencyFrom,
-		CurrencyTo:   r.CurrencyTo,
-		Rate:         r.Rate,
+var _ RateFetcher = (*RateService)(nil) // Ensure RateService implements RateFetcher
+
+func (s *RateService) FetchRate(ctx context.Context, from, to string) (rate.Rate, error) {
+	for _, f := range s.fetchers {
+		r, err := f.FetchRate(ctx, from, to)
+		if err != nil {
+			fmt.Printf("failed to fetch rate: %v\n", err)
+			continue
+		}
+		return r, nil
 	}
-	err := s.repo.Create(row)
-	if err != nil {
-		return nil, fmt.Errorf("service rate creating: %w", err)
-	}
-	return row, nil
+	return rate.Rate{}, fmt.Errorf("failed to fetch rate")
 }
 
-func (s *RateService) fetchRate(ctx context.Context, from, to string) (rate.Rate, error) {
-	return s.fetcher.FetchRate(ctx, from, to)
+func (s *RateService) SetNext(f ...RateFetcher) {
+	s.fetchers = append(s.fetchers, f...)
 }
 
-func (s *RateService) FetchRate(ctx context.Context, from, to string) (*models.Rate, error) {
-	r, err := s.fetchRate(ctx, from, to)
-	if err != nil {
-		return nil, fmt.Errorf("service rate fetching: %w", err)
-	}
-	return s.createRate(r)
-}
-
-func NewRateService(repo RateRepo, fetcher RateFetcher) *RateService {
+func NewRateService(fetcher ...RateFetcher) *RateService {
 	return &RateService{
-		repo:    repo,
-		fetcher: fetcher,
+		fetchers: fetcher,
 	}
 }

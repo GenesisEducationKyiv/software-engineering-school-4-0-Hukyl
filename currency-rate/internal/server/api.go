@@ -10,15 +10,17 @@ import (
 )
 
 const (
-	RatePath      = "/rate"
-	SubscribePath = "/subscribe"
-	ccFrom        = "USD"
-	ccTo          = "UAH"
+	RatePath        = "/rate"
+	SubscribePath   = "/subscribe"
+	UnsubscribePath = "/unsubscribe"
+	ccFrom          = "USD"
+	ccTo            = "UAH"
 )
 
 type UserRepository interface {
 	Exists(user *models.User) (bool, error)
 	Create(user *models.User) error
+	Delete(user *models.User) error
 }
 
 // NewGetRateHandler is a handler that fetches the exchange rate between USD and UAH
@@ -66,10 +68,37 @@ func NewSubscribeUserHandler(repo UserRepository) func(*gin.Context) {
 	}
 }
 
+func UnsubscribeUserHandler(repo UserRepository) func(*gin.Context) {
+	return func(c *gin.Context) {
+		email := c.PostForm("email")
+		if email == "" {
+			c.JSON(http.StatusBadRequest, "email is required")
+			return
+		}
+		user := &models.User{Email: email}
+		exists, err := repo.Exists(user)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err.Error())
+			return
+		}
+		if !exists {
+			c.JSON(http.StatusGone, "")
+			return
+		}
+		err = repo.Delete(user)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err.Error())
+			return
+		}
+		c.JSON(http.StatusOK, "")
+	}
+}
+
 func NewEngine(client Client) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.GET(RatePath, NewGetRateHandler(client.RateService, RateTimeout))
 	r.POST(SubscribePath, NewSubscribeUserHandler(client.UserRepo))
+	r.POST(UnsubscribePath, UnsubscribeUserHandler(client.UserRepo))
 	return r
 }

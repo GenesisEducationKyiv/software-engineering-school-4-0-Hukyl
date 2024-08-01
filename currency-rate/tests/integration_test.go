@@ -8,13 +8,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/database"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/models"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/rate/fetchers"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server"
 	serverCfg "github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/server/service"
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/pkg/settings"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/database"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/settings"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,9 +50,9 @@ func TestChainFetchRate_FailFirst(t *testing.T) {
 	// Arrange
 	nbuFetcher := fetchers.NewNBURateFetcher()
 	curBeaconFetcher := fetchers.NewCurrencyBeaconFetcher("")
-	curBeaconFetcher.SetNext(nbuFetcher)
+	service := service.NewRateService(curBeaconFetcher, nbuFetcher)
 	// Act
-	result, err := curBeaconFetcher.FetchRate(context.Background(), ccFrom, ccTo)
+	result, err := service.FetchRate(context.Background(), ccFrom, ccTo)
 	// Assert
 	require.NoError(t, err)
 	assert.NotZero(t, result.Rate)
@@ -60,9 +60,8 @@ func TestChainFetchRate_FailFirst(t *testing.T) {
 
 func TestRateServiceFetchRate_Success(t *testing.T) {
 	// Arrange
-	rateRepo := models.NewRateRepository(database.SetUpTest(t, &models.Rate{}))
 	nbuFetcher := fetchers.NewNBURateFetcher()
-	rateFetcher := service.NewRateService(rateRepo, nbuFetcher)
+	rateFetcher := service.NewRateService(nbuFetcher)
 	// Act
 	result, err := rateFetcher.FetchRate(context.Background(), ccFrom, ccTo)
 	// Assert
@@ -117,6 +116,30 @@ func TestSubscribeUser_Conflict(t *testing.T) {
 	exists, err := repo.Exists(user)
 	require.NoError(t, err)
 	assert.True(t, exists)
+}
+
+func TestUnsubscribeUser_Success(t *testing.T) {
+	// Arrange
+	user := &models.User{Email: "example@gmail.com"}
+	repo := models.NewUserRepository(database.SetUpTest(t, &models.User{}))
+	err := repo.Create(user)
+	require.NoError(t, err)
+	engine := server.NewEngine(server.Client{
+		Config:   serverCfg.Config{Port: "8080"},
+		UserRepo: repo,
+	})
+	// Act
+	req := httptest.NewRequest(http.MethodPost, server.UnsubscribePath, nil)
+	req.PostForm = map[string][]string{
+		"email": {user.Email},
+	}
+	rr := httptest.NewRecorder()
+	engine.ServeHTTP(rr, req)
+	// Assert
+	assert.Equal(t, http.StatusOK, rr.Code)
+	exists, err := repo.Exists(user)
+	require.NoError(t, err)
+	assert.False(t, exists)
 }
 
 func TestMain(m *testing.M) {
