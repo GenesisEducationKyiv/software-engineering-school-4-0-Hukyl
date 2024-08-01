@@ -115,6 +115,5 @@ func NewCompensateClient(
 		return nil, err
 	}
 
-	go consumer.Listen(stopSignal)
 	return compensateClient, nil
 }

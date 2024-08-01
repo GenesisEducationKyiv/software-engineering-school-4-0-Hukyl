@@ -61,6 +61,10 @@ func (c *Client) unmarshal(data []byte) (*rateFetchedEvent, error) {
 	return event, nil
 }
 
+func (c *Client) Start() {
+	c.consumer.Listen(c.stopSignal)
+}
+
 func (c *Client) Close() error {
 	close(c.stopSignal)
 	return c.consumer.Close()
@@ -73,6 +77,5 @@ func NewClient(config config.Config) (*Client, error) {
 		return nil, err
 	}
 	stopSignal := make(chan struct{})
-	go consumer.Listen(stopSignal)
 	return &Client{consumer: consumer, stopSignal: stopSignal}, nil
 }

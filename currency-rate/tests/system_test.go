@@ -44,6 +44,7 @@ func TestRateProducer_ValidMessage(t *testing.T) {
 	// Act
 	consumer.Subscribe(listener)
 	go consumer.Listen(done)
+	defer func() { done <- struct{}{} }()
 	err = rp.SendRate(context.Background(), "USD", "UAH", 27.5)
 	require.NoError(t, err)
 	time.Sleep(1 * time.Second)
@@ -71,6 +72,7 @@ func TestUserSubscriptionSaga_Compensate(t *testing.T) {
 		QueueName: "user_compensate",
 	})
 	require.NoError(t, err)
+	go userConsumer.Start()
 	defer userConsumer.Close()
 
 	urs := handler.NewUserRepositorySaga(

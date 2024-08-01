@@ -100,7 +100,7 @@ func main() {
 	rateService := service.NewRateService(NewFetchers()...)
 
 	transportConfig := transportCfg.NewFromEnv()
-	// Initializer user event producer
+	// Initialize user event producer
 	userProducer, err := userBroker.NewProducer(transportCfg.Config{
 		BrokerURI: transportConfig.BrokerURI,
 		QueueName: appConfig.UserQueueName,
@@ -117,6 +117,7 @@ func main() {
 		slog.Error("failed to create user consumer", slog.Any("error", err))
 		panic(err)
 	}
+	go userConsumer.Start()
 	userRepo := models.NewUserRepository(db)
 
 	// Decorate userRepo with userProducer

@@ -70,6 +70,10 @@ func (c *Client) unmarshal(data []byte) (*SubscribeEvent, error) {
 	return event, nil
 }
 
+func (c *Client) Start() {
+	c.consumer.Listen(c.stopSignal)
+}
+
 func (c *Client) Close() error {
 	close(c.stopSignal)
 	return c.consumer.Close()
@@ -91,6 +95,5 @@ func NewClient(config config.Config, subscribe Handler, unsubscribe Handler) (*C
 		return nil, err
 	}
 
-	go consumer.Listen(stopSignal)
 	return client, nil
 }
