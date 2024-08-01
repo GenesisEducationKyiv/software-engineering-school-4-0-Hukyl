@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/rate"
+	"github.com/VictoriaMetrics/metrics"
 	"github.com/ericchiang/css"
 	"golang.org/x/net/html"
 )
@@ -22,13 +23,21 @@ const (
 		"api_key=%s&base=%s&symbols=%s"
 )
 
+var (
+	beaconConsecutiveErrorsMetric = metrics.GetOrCreateCounter(
+		`rate_fetcher_consecutive_errors_total{fetcher="currency_beacon_fetcher"}`,
+	)
+	beaconResponseTimeMetric = metrics.GetOrCreateHistogram(
+		`rate_fetcher_response_duration_seconds{fetcher="currency_beacon_fetcher"}`,
+	)
+)
+
 type endpointResponse struct {
 	Rates map[string]float32 `json:"rates"`
 }
 
 type CurrencyBeaconFetcher struct {
 	APIKey              string
-	next                RateFetcher
 	supportedCurrencies []string
 }
 
@@ -38,14 +47,15 @@ func (c *CurrencyBeaconFetcher) SupportedCurrencies(ctx context.Context) []strin
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, supportedCurrenciesURL, nil)
 	if err != nil {
-		slog.Error(
+		getLogger().Error(
 			"creating request",
 			slog.String("fetcher", fmt.Sprint(c)), slog.Any("error", err),
 		)
 		return nil
 	}
+	startTime := time.Now()
 	response, err := http.DefaultClient.Do(req)
-	slog.Info(
+	getLogger().Info(
 		"fetching supported currencies",
 		slog.String("fetcher", fmt.Sprint(c)), slog.Any("error", err),
 	)
@@ -53,10 +63,11 @@ func (c *CurrencyBeaconFetcher) SupportedCurrencies(ctx context.Context) []strin
 		return nil
 	}
 	defer response.Body.Close()
+	beaconResponseTimeMetric.UpdateDuration(startTime)
 	sel, _ := css.Parse(cssSelector)
 	node, err := html.Parse(response.Body)
 	if err != nil {
-		slog.Error(
+		getLogger().Error(
 			"parsing html",
 			slog.String("fetcher", fmt.Sprint(c)), slog.Any("error", err),
 		)
@@ -78,11 +89,18 @@ func (c *CurrencyBeaconFetcher) fetchRate(
 	if err != nil {
 		return rate.Rate{}, err
 	}
+	startTime := time.Now()
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return rate.Rate{}, err
 	}
 	defer resp.Body.Close()
+	beaconResponseTimeMetric.UpdateDuration(startTime)
+	getLogger().Debug(
+		"fetched rate",
+		slog.String("url", formattedURL),
+		slog.Any("status", resp.Status),
+	)
 	if resp.StatusCode != http.StatusOK {
 		return rate.Rate{}, fmt.Errorf("fetching url: %s", resp.Status)
 	}
@@ -94,12 +112,14 @@ func (c *CurrencyBeaconFetcher) fetchRate(
 	if !ok {
 		return rate.Rate{}, errors.New("rate not found")
 	}
-	return rate.Rate{
+	rate := rate.Rate{
 		CurrencyFrom: ccFrom,
 		CurrencyTo:   ccTo,
 		Rate:         value,
 		Time:         time.Now(),
-	}, nil
+	}
+	getLogger().Debug("rate fetched", slog.Any("rate", rate))
+	return rate, nil
 }
 
 func (c *CurrencyBeaconFetcher) FetchRate(
@@ -108,7 +128,7 @@ func (c *CurrencyBeaconFetcher) FetchRate(
 	supportedCurrencies := c.SupportedCurrencies(ctx)
 	if supportedCurrencies == nil {
 		err := errors.New("failed to fetch supported currencies")
-		slog.Info(
+		getLogger().Info(
 			"fetching rate",
 			slog.String("fetcher", fmt.Sprint(c)),
 			slog.Any("error", err),
@@ -122,23 +142,18 @@ func (c *CurrencyBeaconFetcher) FetchRate(
 		return rate.Rate{}, fmt.Errorf("unsupported currency: %s", ccTo)
 	}
 	result, err := c.fetchRate(ctx, ccFrom, ccTo)
-	slog.Info(
+	getLogger().Info(
 		"fetched rate",
 		slog.String("fetcher", fmt.Sprint(c)),
 		slog.Any("rate", result),
 		slog.Any("error", err),
 	)
 	if err == nil {
+		beaconConsecutiveErrorsMetric.Set(0)
 		return result, nil
 	}
-	if c.next != nil {
-		return c.next.FetchRate(ctx, ccFrom, ccTo)
-	}
+	beaconConsecutiveErrorsMetric.Inc()
 	return rate.Rate{}, err
-}
-
-func (c *CurrencyBeaconFetcher) SetNext(r RateFetcher) {
-	c.next = r
 }
 
 func (c *CurrencyBeaconFetcher) String() string {

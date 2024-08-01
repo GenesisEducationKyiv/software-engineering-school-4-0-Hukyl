@@ -1,0 +1,36 @@
+services:
+  rabbitmq-test:
+    container_name: rabbitmq-test
+    image: rabbitmq:3.13.4-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+    environment:
+      AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
+      RABBITMQ_DEFAULT_USER: rabbitmq
+      RABBITMQ_DEFAULT_PASS: rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q status
+      start_period: 10s
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  api-service-test:
+    container_name: api-service-test
+    build:
+      context: ./currency-rate
+      dockerfile: Dockerfile.test
+    ports:
+      - 8080:8080
+    volumes:
+      - ./currency-rate:/go/src/github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate
+    depends_on:
+      rabbitmq-test:
+        condition: service_healthy
+    environment:
+      - BROKER_URI=amqp://rabbitmq:rabbitmq@rabbitmq-test:5672/
+    env_file:
+      - ./pkg/settings/.env.sample
+    command: go test -v -tags system -timeout 15s ./...

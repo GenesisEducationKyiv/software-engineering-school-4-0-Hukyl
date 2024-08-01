@@ -3,8 +3,8 @@ package models_test
 import (
 	"testing"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/database"
 	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/currency-rate/internal/models"
+	"github.com/GenesisEducationKyiv/software-engineering-school-4-0-Hukyl/pkg/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +19,7 @@ func TestUserRepositoryCreate(t *testing.T) {
 }
 
 func TestUserRepositoryFindAll(t *testing.T) {
-	// Prepare
+	// Arrange
 	db := database.SetUpTest(t, &models.User{})
 	repo := models.NewUserRepository(db)
 	user1 := &models.User{Email: "example1@gmail.com"}
@@ -36,7 +36,7 @@ func TestUserRepositoryFindAll(t *testing.T) {
 }
 
 func TestUserRepositoryExists(t *testing.T) {
-	// Prepare
+	// Arrange
 	db := database.SetUpTest(t, &models.User{})
 	repo := models.NewUserRepository(db)
 	user := &models.User{Email: "example@gmail.com"}
@@ -50,13 +50,29 @@ func TestUserRepositoryExists(t *testing.T) {
 }
 
 func TestUserRepositoryNotExists(t *testing.T) {
-	// Prepare
+	// Arrange
 	db := database.SetUpTest(t, &models.User{})
 	repo := models.NewUserRepository(db)
 	user := &models.User{Email: "example@gmail.com"}
 	// Act
 	exists, err := repo.Exists(user)
 	// Assert
+	require.NoError(t, err)
+	assert.False(t, exists)
+}
+
+func TestUserRepositoryDelete(t *testing.T) {
+	// Arrange
+	db := database.SetUpTest(t, &models.User{})
+	repo := models.NewUserRepository(db)
+	user := &models.User{Email: "example@gmail.com"}
+	err := repo.Create(user)
+	require.NoError(t, err)
+	// Act
+	err = repo.Delete(user)
+	// Assert
+	require.NoError(t, err)
+	exists, err := repo.Exists(user)
 	require.NoError(t, err)
 	assert.False(t, exists)
 }

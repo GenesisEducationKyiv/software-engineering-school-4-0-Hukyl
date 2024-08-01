@@ -1,4 +1,7 @@
-version: '3'
+x-common-variables: &compose-database-env
+  environment:
+    - DATABASE_SERVICE=postgres
+    - DATABASE_DSN=host=postgres user=postgres password=postgres dbname=genesis_kma_se_school port=5432 sslmode=disable TimeZone=UTC
 
 services:
   postgres:
@@ -49,9 +52,7 @@ services:
     env_file:
       - ./.env
     restart: always
-    environment:
-      - DATABASE_SERVICE=postgres
-      - DATABASE_DSN=host=postgres user=postgres password=postgres dbname=genesis_kma_se_school port=5432 sslmode=disable TimeZone=UTC
+    <<: *compose-database-env
   
   email-service:
     container_name: email-service
@@ -65,10 +66,22 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      postgres:
+        condition: service_started
     env_file:
       - ./.env
     restart: always
+    <<: *compose-database-env
 
+  victoria-metrics:
+    container_name: victoria-metrics
+    image: victoriametrics/victoria-metrics
+    ports:
+      - "8428:8428"
+    restart: always
+    volumes:
+      - ./victoria-metrics:/victoria-metrics-data
+    # command: -storageDataPath=/victoria-metrics-data -retentionPeriod=30d
 
 volumes:
   postgres-db:
