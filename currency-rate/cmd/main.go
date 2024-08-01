@@ -90,13 +90,16 @@ func NewFetchers() []service.RateFetcher {
 	return []service.RateFetcher{currencyBeaconFetcher, nbuFetcher}
 }
 
-func NewCron(transportConfig transportCfg.Config, fetcher service.RateFetcher) *cron.Manager {
+func NewCron(
+	transportConfig transportCfg.Config,
+	fetcher service.RateFetcher,
+) (*cron.Manager, error) {
 	transportConfig.QueueName = appConfig.RateQueueName
 
 	producer, err := rateProducer.NewProducer(transportConfig)
 	if err != nil {
 		slog.Error("failed to create rate producer", slog.Any("error", err))
-		return nil
+		return nil, err
 	}
 
 	job := cronRate.NewCronJob(fetcher, producer, ccFrom, ccTo)
@@ -109,9 +112,9 @@ func NewCron(transportConfig transportCfg.Config, fetcher service.RateFetcher) *
 	err = cronManager.AddJob(spec, job.Run)
 	if err != nil {
 		slog.Error("adding cron job", slog.Any("error", err))
-		return nil
+		return nil, err
 	}
-	return cronManager
+	return cronManager, nil
 }
 
 func main() {
@@ -157,13 +160,13 @@ func main() {
 		UserRepo:    decoratedUserRepo,
 	}
 
-	cronManager := NewCron(transportConfig, rateService)
-	if cronManager == nil {
-		slog.Error("failed to initialize cron manager")
-	} else {
-		cronManager.Start()
-		defer cronManager.Stop()
+	cronManager, err := NewCron(transportConfig, rateService)
+	if err != nil {
+		slog.Error("failed to initialize cron manager", slog.Any("error", err))
+		panic(err)
 	}
+	cronManager.Start()
+	defer cronManager.Stop()
 
 	// Start HTTP server
 	s := server.NewServer(apiClient.Config, server.NewEngine(apiClient))
