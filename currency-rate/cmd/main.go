@@ -122,7 +122,7 @@ func main() { // nolint: funlen
 	rateService := service.NewRateService(NewFetchers()...)
 
 	transportConfig := transportCfg.NewFromEnv()
-	// Initializer user event producer
+	// Initialize user event producer
 	userProducer, err := userBroker.NewProducer(transportCfg.Config{
 		BrokerURI: transportConfig.BrokerURI,
 		QueueName: appConfig.UserQueueName,
@@ -139,6 +139,7 @@ func main() { // nolint: funlen
 		slog.Error("failed to create user consumer", slog.Any("error", err))
 		panic(err)
 	}
+	go userConsumer.Start()
 	userRepo := models.NewUserRepository(db)
 
 	// Decorate userRepo with userProducer

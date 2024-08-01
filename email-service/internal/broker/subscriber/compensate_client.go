@@ -128,6 +128,5 @@ func NewCompensateClient(
 	}
 	getLogger().Debug("new subscriber consumer with compensation created")
 
-	go consumer.Listen(stopSignal)
 	return compensateClient, nil
 }

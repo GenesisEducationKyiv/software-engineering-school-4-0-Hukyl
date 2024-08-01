@@ -83,6 +83,10 @@ func (c *Client) unmarshal(data []byte) (*rateFetchedEvent, error) {
 	return event, nil
 }
 
+func (c *Client) Start() {
+	c.consumer.Listen(c.stopSignal)
+}
+
 func (c *Client) Close() error {
 	getLogger().Info("closing rate client")
 	close(c.stopSignal)
@@ -97,6 +101,5 @@ func NewClient(config config.Config) (*Client, error) {
 	}
 	getLogger().Debug("new rate consumer created")
 	stopSignal := make(chan struct{})
-	go consumer.Listen(stopSignal)
 	return &Client{consumer: consumer, stopSignal: stopSignal}, nil
 }

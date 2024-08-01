@@ -83,6 +83,10 @@ func (c *Consumer) ListenUnsubscribeCompensate(f Handler) error {
 	return nil
 }
 
+func (c *Consumer) Start() {
+	c.consumer.Listen(c.stopSignal)
+}
+
 func (c *Consumer) Close() error {
 	slog.Debug("closing consumer")
 	close(c.stopSignal)
@@ -95,6 +99,5 @@ func NewConsumer(config config.Config) (*Consumer, error) {
 		return nil, fmt.Errorf("creating consumer: %w", err)
 	}
 	stopSignal := make(chan struct{})
-	go consumer.Listen(stopSignal)
 	return &Consumer{consumer: consumer, stopSignal: stopSignal}, nil
 }

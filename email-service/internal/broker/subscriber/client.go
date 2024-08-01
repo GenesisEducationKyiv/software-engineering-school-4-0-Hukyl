@@ -95,6 +95,10 @@ func (c *Client) unmarshal(data []byte) (*SubscribeEvent, error) {
 	return event, nil
 }
 
+func (c *Client) Start() {
+	c.consumer.Listen(c.stopSignal)
+}
+
 func (c *Client) Close() error {
 	getLogger().Info("closing subscriber client")
 	close(c.stopSignal)
@@ -118,6 +122,5 @@ func NewClient(config config.Config, subscribe Handler, unsubscribe Handler) (*C
 	}
 	getLogger().Debug("new subscriber consumer created")
 
-	go consumer.Listen(stopSignal)
 	return client, nil
 }

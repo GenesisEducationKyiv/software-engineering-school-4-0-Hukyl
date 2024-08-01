@@ -89,6 +89,8 @@ func NewRateConsumer(config transportCfg.Config, rateRepo *models.RateRepository
 		return nil
 	}
 	slog.Debug("new rate consumer created")
+	go rateConsumer.Start()
+
 	eventHandler := handlers.NewRateEvents(rateRepo)
 	err = rateConsumer.Subscribe(eventHandler.SaveRate)
 	if err != nil {
@@ -120,6 +122,8 @@ func NewSubscriberConsumer(
 		return nil
 	}
 	slog.Debug("new subscriber consumer with compensation created")
+	go subConsumer.Start()
+
 	return subConsumer
 }
 
