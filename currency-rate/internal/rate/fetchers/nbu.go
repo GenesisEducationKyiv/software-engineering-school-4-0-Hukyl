@@ -26,9 +26,7 @@ import (
 //		log.Fatal(err)
 //	}
 //	fmt.Println(rate)
-type NBURateFetcher struct {
-	next RateFetcher
-}
+type NBURateFetcher struct{}
 
 const uahCC = "UAH"
 
@@ -87,14 +85,7 @@ func (n *NBURateFetcher) FetchRate(ctx context.Context, ccFrom, ccTo string) (ra
 	if err == nil {
 		return result, nil
 	}
-	if n.next != nil {
-		return n.next.FetchRate(ctx, ccFrom, ccTo)
-	}
 	return rate.Rate{}, err
-}
-
-func (n *NBURateFetcher) SetNext(next RateFetcher) {
-	n.next = next
 }
 
 func (n *NBURateFetcher) String() string {

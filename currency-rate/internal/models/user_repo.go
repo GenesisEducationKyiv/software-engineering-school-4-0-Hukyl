@@ -33,3 +33,8 @@ func (r *UserRepository) Exists(user *User) (bool, error) {
 	).Error
 	return count > 0, err
 }
+
+func (r *UserRepository) Delete(user *User) error {
+	conn := r.db.Connection()
+	return conn.Where("email = ?", user.Email).Delete(user).Error
+}

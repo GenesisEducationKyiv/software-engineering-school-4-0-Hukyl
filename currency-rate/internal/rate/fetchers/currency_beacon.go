@@ -28,7 +28,6 @@ type endpointResponse struct {
 
 type CurrencyBeaconFetcher struct {
 	APIKey              string
-	next                RateFetcher
 	supportedCurrencies []string
 }
 
@@ -131,14 +130,7 @@ func (c *CurrencyBeaconFetcher) FetchRate(
 	if err == nil {
 		return result, nil
 	}
-	if c.next != nil {
-		return c.next.FetchRate(ctx, ccFrom, ccTo)
-	}
 	return rate.Rate{}, err
-}
-
-func (c *CurrencyBeaconFetcher) SetNext(r RateFetcher) {
-	c.next = r
 }
 
 func (c *CurrencyBeaconFetcher) String() string {

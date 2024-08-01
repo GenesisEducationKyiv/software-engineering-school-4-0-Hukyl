@@ -18,11 +18,12 @@ func (gm *GomailMailer) SendEmail(
 	ctx context.Context, emails []string,
 	subject, message string,
 ) error {
-	mail := gomail.NewMessage()
-	mail.SetHeader("From", gm.config.FromEmail)
 	if len(emails) == 0 {
 		return errors.New("no email recipients")
 	}
+
+	mail := gomail.NewMessage()
+	mail.SetHeader("From", gm.config.FromEmail)
 	mail.SetHeader("To", emails[0])
 	mail.SetHeader("Bcc", emails[1:]...)
 	mail.SetHeader("Subject", subject)

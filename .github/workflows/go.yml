@@ -21,10 +21,14 @@ jobs:
       with:
         go-version: '1.22'
 
+    - name: Test pkg folder
+      run: go test -v -tags integration ./...
+      working-directory: ./pkg
+
     - name: Test API service
       run: go test -v -tags integration ./...
       working-directory: ./currency-rate
 
     - name: Test email service
-      run: go test -v ./...
+      run: go test -v -tags integration ./...
       working-directory: ./email-service
