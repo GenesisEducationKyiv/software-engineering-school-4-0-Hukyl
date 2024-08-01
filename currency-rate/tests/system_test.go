@@ -53,14 +53,14 @@ func TestRateProducer_ValidMessage(t *testing.T) {
 
 func TestUserSubscriptionSaga_Compensate(t *testing.T) {
 	// Arrange
-	// Create user repo saga
 	db, err := database.New(databaseCfg.NewFromEnv())
 	require.NoError(t, err)
 	err = db.Migrate(&models.User{})
 	require.NoError(t, err)
+
 	userRepo := models.NewUserRepository(db)
+
 	brokerURI := transportCfg.NewFromEnv().BrokerURI
-	slog.Debug(brokerURI)
 	userProducer, err := userBroker.NewProducer(transportCfg.Config{
 		BrokerURI: brokerURI,
 		QueueName: "user",
@@ -72,16 +72,13 @@ func TestUserSubscriptionSaga_Compensate(t *testing.T) {
 	})
 	require.NoError(t, err)
 	defer userConsumer.Close()
-	slog.Debug("initialized userConsumer and userProducer")
-	// Decorate userRepo with userProducer
+
 	urs := handler.NewUserRepositorySaga(
 		userRepo,
 		userProducer,
 		userConsumer,
 	)
-	slog.Debug("initialized saga")
-	email := "example@gmail.com"
-	// Create compensator
+
 	consumer, err := transport.NewConsumer(transportCfg.Config{
 		BrokerURI: brokerURI,
 		QueueName: "user",
@@ -91,8 +88,8 @@ func TestUserSubscriptionSaga_Compensate(t *testing.T) {
 		BrokerURI: brokerURI,
 		QueueName: "user_compensate",
 	})
-	slog.Debug("initialized compensator's producer and consumer")
 	require.NoError(t, err)
+
 	done := make(chan struct{})
 	listener := func(msg []byte) error {
 		var eventData broker.Event
@@ -103,18 +100,18 @@ func TestUserSubscriptionSaga_Compensate(t *testing.T) {
 		require.NoError(t, err)
 		return producer.Produce(context.Background(), newMsgBytes)
 	}
+	email := "example@gmail.com"
+
 	// Act
 	consumer.Subscribe(listener)
 	go consumer.Listen(done)
 	defer func() { done <- struct{}{} }()
-	slog.Debug("subscribed compensator")
-	slog.Debug("creating user...")
+
 	err = urs.Create(&models.User{Email: email})
 	require.NoError(t, err)
-	slog.Debug("sleeping...")
+
 	time.Sleep(5 * time.Second)
 	// Assert
-	slog.Debug("fetching users...")
 	users, err := userRepo.FindAll()
 	require.NoError(t, err)
 	assert.Empty(t, users)
